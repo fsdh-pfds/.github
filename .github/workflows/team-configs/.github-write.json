@@ -1,5 +1,5 @@
 {
-  "name": "github-org-write",
+  "name": ".github-write",
   "description": "Code Contributors to the github-org repo, this repo manages all the other repo's in the org",
   "privacy": "closed",
   "notification_setting": "notifications_enabled",
@@ -10,7 +10,7 @@
   ],
   "repositories": [
     {
-      "name": "github-org",
+      "name": ".github",
       "permissions": "push"
     }
   ]
