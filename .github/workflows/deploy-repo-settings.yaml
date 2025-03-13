@@ -32,19 +32,25 @@ jobs:
 
       - name: Enforcing repository settings
         run: |
-          # Loop through every JSON config file in the repo-settings folder.
+          error_count=0
           for file in repo-settings/*.json; do
             echo "Processing $file..."
-            # Extract the full repository name from the JSON config.
             full_name=$(jq -r '.full_name' "$file")
             if [ -z "$full_name" ]; then
               echo "No full_name found in $file; skipping."
               continue
             fi
             echo "Updating repository: $full_name"
-            if gh api -X PATCH "repos/${full_name}" --input "$file" --silent; then
+            if gh api -X PATCH "repos/${full_name}" --header "Content-Type: application/json" --input "$file" --silent; then
               echo "Repository settings applied successfully for ${full_name}"
             else
               echo "Failed to update settings for ${full_name}"
+              error_count=$((error_count+1))
             fi
           done
+          if [ $error_count -gt 0 ]; then
+            echo "$error_count errors encountered while applying repository settings."
+            exit 1
+          else
+            echo "All repository settings applied successfully."
+          fi
