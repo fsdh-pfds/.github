@@ -37,5 +37,9 @@ jobs:
               continue
             fi
             echo "Updating repository: $full_name"
-            gh api -X PATCH "repos/${full_name}" --input "$file"
+            if gh api -X PATCH "repos/${full_name}" --input "$file" --silent; then
+              echo "Repository settings applied successfully for ${full_name}"
+            else
+              echo "Failed to update settings for ${full_name}"
+            fi
           done
