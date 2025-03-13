@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Convert App token
         id: create_token
-        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc
+        uses: getsentry/action-github-app-token@a0061014b82a6a5d6aeeb3b824aced47e3c3a7ef
         with:
           app_id: ${{ vars.FSDH_REPO_ADMIN_APP_ID }}
           private_key: ${{ secrets.FSDH_REPO_ADMIN_APP_KEY }}
