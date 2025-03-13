@@ -2,13 +2,6 @@ name: Manage Organization Teams
 
 on:
   workflow_dispatch:
-    inputs:
-      #checkov:skip=CKV_GHA_7: "dry-run parameter is used safely for testing changes"
-      dry-run:
-        description: "Perform a dry run without making changes"
-        required: false
-        type: boolean
-        default: false
   push:
     branches:
       - main
@@ -64,8 +57,6 @@ jobs:
           fi
 
       - name: Manage Teams
-        env:
-          DRY_RUN: ${{ inputs.dry-run }}
         run: |
           # Improved function for team property extraction
           get_team_properties() {
@@ -98,29 +89,26 @@ jobs:
 
             if [[ " ${existing_teams[*]} " =~ ${TEAM_SLUG} ]]; then
               log_action "update" "$TEAM_NAME"
-              if [[ "$DRY_RUN" != "true" ]]; then
-                gh api \
-                  --method PATCH \
-                  -H "Accept: application/vnd.github+json" \
-                  "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}" \
-                  -f "name=${TEAM_NAME}" \
-                  -f "description=${TEAM_DESCRIPTION}" \
-                  -f "privacy=${TEAM_PRIVACY}" \
-                  -f "notification_setting=${TEAM_NOTIFICATION}"
-              fi
+              gh api \
+                --method PATCH \
+                -H "Accept: application/vnd.github+json" \
+                "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}" \
+                -f "name=${TEAM_NAME}" \
+                -f "description=${TEAM_DESCRIPTION}" \
+                -f "privacy=${TEAM_PRIVACY}" \
+                -f "notification_setting=${TEAM_NOTIFICATION}"
             else
               log_action "create" "$TEAM_NAME"
-              if [[ "$DRY_RUN" != "true" ]]; then
-                gh api \
-                  --method POST \
-                  -H "Accept: application/vnd.github+json" \
-                  "/orgs/${{ github.repository_owner }}/teams" \
-                  -f "name=${TEAM_NAME}" \
-                  -f "description=${TEAM_DESCRIPTION}" \
-                  -f "privacy=${TEAM_PRIVACY}" \
-                  -f "permission=${TEAM_PERMISSION}" \
-                  -f "notification_setting=${TEAM_NOTIFICATION}"
-              fi
+              gh api \
+                --method POST \
+                -H "Accept: application/vnd.github+json" \
+                "/orgs/${{ github.repository_owner }}/teams" \
+                -f "name=${TEAM_NAME}" \
+                -f "description=${TEAM_DESCRIPTION}" \
+                -f "privacy=${TEAM_PRIVACY}" \
+                -f "permission=${TEAM_PERMISSION}" \
+                -f "notification_setting=${TEAM_NOTIFICATION}"
+
             fi
           done
 
