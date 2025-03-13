@@ -200,9 +200,6 @@ jobs:
                   -H "Accept: application/vnd.github+json" \
                   "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/repos/${existing_repo}" \
                   --silent
-
-              else
-                echo "[KEEP] ${existing_repo} remains configured for ${TEAM_NAME}"
               fi
             done
           done
