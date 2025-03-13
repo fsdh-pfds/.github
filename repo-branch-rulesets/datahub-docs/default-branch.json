@@ -47,13 +47,14 @@
       }
     },
     {
-      "type": "code_scanning",
+      "type": "required_status_checks",
       "parameters": {
-        "code_scanning_tools": [
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
           {
-            "tool": "CodeQL",
-            "security_alerts_threshold": "high_or_higher",
-            "alerts_threshold": "errors"
+            "context": "Lint",
+            "integration_id": 15368
           }
         ]
       }
