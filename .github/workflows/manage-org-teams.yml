@@ -73,7 +73,6 @@ jobs:
             TEAM_PERMISSION=$(echo "$team" | jq -r '.permission // "push"')
             TEAM_NOTIFICATION=$(echo "$team" | jq -r '.notification_setting // "notifications_enabled"')
 
-            # Use grep -qx for an exact match on TEAM_SLUG in the list of existing teams
             if printf '%s\n' "${existing_teams[@]}" | grep -qx "${TEAM_SLUG}"; then
               echo "[UPDATE] Team: ${TEAM_NAME}"
               gh api --method PATCH \
@@ -107,4 +106,59 @@ jobs:
                 "/orgs/${{ github.repository_owner }}/teams/${team_slug}" \
                 --silent
             fi
+          done
+
+      - name: Manage Team Members
+        env:
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          set -euo pipefail
+
+          # Get all team configuration files (including hidden files)
+          mapfile -t team_files < <(find ./org-team-configs -maxdepth 1 -type f -name "*.json")
+
+          for team_file in "${team_files[@]}"; do
+            echo "Processing team config: $team_file"
+            team=$(cat "$team_file")
+            TEAM_NAME=$(echo "$team" | jq -r '.name')
+            TEAM_SLUG=$(echo "$TEAM_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+            TEAM_MEMBERS=$(echo "$team" | jq -c '.members // []')
+
+            # Fetch current team members and organization members as arrays
+            mapfile -t current_members < <(gh api "orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/members" --jq '.[].login')
+            mapfile -t current_org_members < <(gh api "/orgs/${{ github.repository_owner }}/members" --jq '.[].login')
+            org_members_str=$(printf "%s\n" "${current_org_members[@]}")
+
+            # Add (or update) members from the config file
+            echo "$TEAM_MEMBERS" | jq -c '.[]' | while read -r member; do
+              username=$(echo "$member" | jq -r '.username')
+              if echo "$org_members_str" | grep -qw "$username"; then
+                if [[ "$DRY_RUN" != "true" ]]; then
+                  echo "[ADD] Team: ${TEAM_NAME}, User: ${username}"
+                  gh api --method PUT \
+                    -H "Accept: application/vnd.github+json" \
+                    "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/memberships/${username}" \
+                    --silent
+                else
+                  echo "[WOULD ADD] Team: ${TEAM_NAME}, User: ${username}"
+                fi
+              else
+                echo "User ${username} is not an organization member. Skipping..."
+              fi
+            done
+
+            # Remove members not present in the config
+            for member in "${current_members[@]}"; do
+              if ! echo "$TEAM_MEMBERS" | jq -e --arg member "$member" 'map(.username) | index($member)' >/dev/null; then
+                if [[ "$DRY_RUN" != "true" ]]; then
+                  echo "[REMOVE] Team: ${TEAM_NAME}, User: ${member}"
+                  gh api --method DELETE \
+                    -H "Accept: application/vnd.github+json" \
+                    "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/memberships/${member}" \
+                    --silent
+                else
+                  echo "[WOULD REMOVE] Team: ${TEAM_NAME}, User: ${member}"
+                fi
+              fi
+            done
           done
