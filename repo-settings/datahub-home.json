@@ -1,0 +1,26 @@
+{
+    "name": "datahub-home",
+    "full_name": "fsdh-pfds/datahub-home",
+    "private": false,
+    "description": "Homesite for FSDH Datahub",
+    "fork": false,
+    "homepage": "https://sds.canada.ca/",
+    "has_issues": true,
+    "has_projects": false,
+    "has_downloads": true,
+    "has_wiki": false,
+    "has_pages": true,
+    "has_discussions": false,
+    "allow_forking": true,
+    "web_commit_signoff_required": true,
+    "visibility": "public",
+    "default_branch": "main",
+    "permissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "custom_properties": {}
+  }
