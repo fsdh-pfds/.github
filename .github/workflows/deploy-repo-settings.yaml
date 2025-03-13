@@ -1,0 +1,42 @@
+name: Deploy Repository Settings
+
+on:
+  schedule:
+    # Run the workflow every hour
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+# Ensure that the token used (via the GitHub App) has sufficient permissions.
+permissions: write-all
+
+jobs:
+  deploy_settings:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Convert App token
+        id: create_token
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc
+        with:
+          app_id: ${{ vars.FSDH_REPO_ADMIN_APP_ID }}
+          private_key: ${{ secrets.FSDH_REPO_ADMIN_APP_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up GitHub CLI
+        run: gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
+
+      - name: Deploy repository settings from central config
+        run: |
+          # Loop through every JSON config file in the .github/repo-settings folder.
+          for file in .github/repo-settings/*.json; do
+            echo "Processing $file..."
+            # Extract the full repository name from the JSON config.
+            full_name=$(jq -r '.full_name' "$file")
+            if [ -z "$full_name" ]; then
+              echo "No full_name found in $file; skipping."
+              continue
+            fi
+            echo "Updating repository: $full_name"
+            gh api -X PATCH "repos/${full_name}" -d @"$file"
+          done
