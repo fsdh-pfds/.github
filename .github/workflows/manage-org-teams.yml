@@ -13,7 +13,7 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/team-configs/*.json"
+      - "org-team-configs/*.json"
 
 permissions:
   contents: read
@@ -42,7 +42,7 @@ jobs:
 
       - name: Validate Team Configurations
         run: |
-          team_configs=(./.github/workflows/team-configs/*.json)
+          team_configs=(./org-team-configs/*.json)
 
           for team_file in "${team_configs[@]}"; do
             if ! jq empty "$team_file" 2>/dev/null; then
@@ -77,7 +77,7 @@ jobs:
           mapfile -t existing_teams < <(gh api orgs/${{ github.repository_owner }}/teams --jq '.[].slug')
 
           # Process team configurations
-          for team_file in ./.github/workflows/team-configs/*.json; do
+          for team_file in ./org-team-configs/*.json; do
             [[ -e $team_file ]] || continue
 
             team=$(cat "$team_file")
@@ -113,7 +113,7 @@ jobs:
 
           # Remove teams without configurations
           for team_slug in "${existing_teams[@]}"; do
-            if ! compgen -G "./.github/workflows/team-configs/${team_slug}.json" > /dev/null; then
+            if ! compgen -G "./org-team-configs/${team_slug}.json" > /dev/null; then
               log_action "delete" "$team_slug"
               if [[ "$DRY_RUN" != "true" ]]; then
                 gh api \
@@ -137,7 +137,7 @@ jobs:
           }
 
           # Process each team configuration
-          for team_file in ./.github/workflows/team-configs/*.json; do
+          for team_file in ./org-team-configs/*.json; do
             [[ -e $team_file ]] || continue
 
             team=$(cat "$team_file")
@@ -203,7 +203,7 @@ jobs:
           }
 
           # Process each team configuration
-          for team_file in ./.github/workflows/team-configs/*.json; do
+          for team_file in ./org-team-configs/*.json; do
             [[ -e $team_file ]] || continue
 
             team=$(cat "$team_file")

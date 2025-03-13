@@ -5,8 +5,7 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/branch-rulesets/**/*.json"
-      - ".github/workflows/org-rulesets.yml"
+      - "repo-branch-rulesets/**/*.json"
   schedule:
     - cron: "0 6 * * *" # Run daily at 6 AM
   workflow_dispatch:
@@ -46,7 +45,7 @@ jobs:
             echo "Processing repository: $repo"
 
             # Check if the folder for this repo exists
-            repo_ruleset_folder=".github/workflows/branch-rulesets/$repo"
+            repo_ruleset_folder="repo-branch-rulesets/$repo"
             if [ ! -d "$repo_ruleset_folder" ]; then
               echo "No ruleset folder found for $repo. Skipping."
               continue

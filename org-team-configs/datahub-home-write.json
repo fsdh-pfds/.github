@@ -1,0 +1,22 @@
+{
+  "name": "datahub-home-write",
+  "description": "FSDH Home repo write datahub-home repo",
+  "privacy": "closed",
+  "notification_setting": "notifications_enabled",
+  "members": [
+    {
+      "username": "Sean-Stilwell",
+      "role": "member"
+    },
+    {
+      "username": "deb-h576",
+      "role": "member"
+    }
+  ],
+  "repositories": [
+    {
+      "name": "datahub-home",
+      "permissions": "push"
+    }
+  ]
+}

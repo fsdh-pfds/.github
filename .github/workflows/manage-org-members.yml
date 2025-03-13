@@ -7,7 +7,7 @@ on:
     branches:
       - main
     paths:
-      - .github/workflows/org-membership/members.json
+      - org-membership/members.json
 
 permissions: read-all
 
@@ -67,7 +67,7 @@ jobs:
 
       - name: Set membership
         run: |
-          org_membership="./.github/workflows/org-membership/members.json"
+          org_membership="./org-membership/members.json"
 
           if [[ ! -f "$org_membership" ]]; then
             echo "Error: members.json file not found at $org_membership"
