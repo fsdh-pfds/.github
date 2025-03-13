@@ -108,7 +108,7 @@ jobs:
             fi
           done
 
-      - name: Manage Team Members
+      - name: Manage Team Member Enrollment
         run: |
           set -euo pipefail
 
@@ -127,32 +127,34 @@ jobs:
             mapfile -t current_org_members < <(gh api "/orgs/${{ github.repository_owner }}/members" --jq '.[].login')
             org_members_str=$(printf "%s\n" "${current_org_members[@]}")
 
-            # Add (or update) members from the config file
+            # Add members from the config file if they're not already in the team
             echo "$TEAM_MEMBERS" | jq -c '.[]' | while read -r member; do
               username=$(echo "$member" | jq -r '.username')
               if echo "$org_members_str" | grep -qw "$username"; then
-
-                echo "[ADD] Team: ${TEAM_NAME}, User: ${username}"
-                gh api --method PUT \
-                  -H "Accept: application/vnd.github+json" \
-                  "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/memberships/${username}" \
-                  --silent
-
+                if printf '%s\n' "${current_members[@]}" | grep -qx "$username"; then
+                  echo "[SKIP] ${username} is already a member of ${TEAM_NAME}."
+                else
+                  echo "[ADD] Adding ${username} to ${TEAM_NAME}."
+                  gh api --method PUT \
+                    -H "Accept: application/vnd.github+json" \
+                    "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/memberships/${username}" \
+                    --silent
+                fi
               else
                 echo "User ${username} is not an organization member. Skipping..."
               fi
             done
 
-            # Remove members not present in the config
+            # Remove current team members that are not present in the JSON config
             for member in "${current_members[@]}"; do
               if ! echo "$TEAM_MEMBERS" | jq -e --arg member "$member" 'map(.username) | index($member)' >/dev/null; then
-
-                echo "[REMOVE] Team: ${TEAM_NAME}, User: ${member}"
+                echo "[REMOVE] Removing ${member} from ${TEAM_NAME}."
                 gh api --method DELETE \
                   -H "Accept: application/vnd.github+json" \
                   "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/memberships/${member}" \
                   --silent
-
+              else
+                echo "[KEEP] ${member} remains in ${TEAM_NAME}."
               fi
             done
           done
