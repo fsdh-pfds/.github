@@ -43,13 +43,25 @@ jobs:
       - name: Validate Team Configurations
         run: |
           team_configs=(./org-team-configs/*.json)
+          error_count=0
 
           for team_file in "${team_configs[@]}"; do
+            echo "Validating ${team_file}..."
             if ! jq empty "$team_file" 2>/dev/null; then
-              echo "Invalid JSON in $team_file"
-              exit 1
+              echo "Invalid JSON found in ${team_file}"
+              error_count=$((error_count+1))
+            else
+              echo "Valid JSON in ${team_file}"
             fi
           done
+
+          if [ $error_count -gt 0 ]; then
+            echo "Found $error_count invalid JSON file(s) in team configurations."
+            exit 1
+          else
+            echo "All team configurations are valid."
+          fi
+
 
       - name: Manage Teams
         env:
