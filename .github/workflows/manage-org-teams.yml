@@ -1,4 +1,4 @@
-name: Manage GitHub Teams and Members
+name: Manage Organization Teams
 
 on:
   workflow_dispatch:
@@ -42,7 +42,8 @@ jobs:
 
       - name: Validate Team Configurations
         run: |
-          team_configs=(./org-team-configs/*.json)
+          # Use find to list all JSON files (including hidden ones) in the org-team-configs folder.
+          mapfile -t team_configs < <(find ./org-team-configs -maxdepth 1 -type f -name "*.json")
           error_count=0
 
           for team_file in "${team_configs[@]}"; do
@@ -61,7 +62,6 @@ jobs:
           else
             echo "All team configurations are valid."
           fi
-
 
       - name: Manage Teams
         env:
