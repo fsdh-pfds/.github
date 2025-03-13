@@ -29,68 +29,53 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Set up GitHub CLI and dependencies
+      - name: Set up GitHub CLI
         run: |
           gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
 
-      - name: Validate Team Configurations
+      - name: Process Team Configurations
         run: |
-          # Use find to list all JSON files (including hidden ones) in the org-team-configs folder.
-          mapfile -t team_configs < <(find ./org-team-configs -maxdepth 1 -type f -name "*.json")
-          error_count=0
+          set -euo pipefail
 
-          for team_file in "${team_configs[@]}"; do
+          # Find all JSON files in org-team-configs (including hidden files)
+          mapfile -t team_files < <(find ./org-team-configs -maxdepth 1 -type f -name "*.json")
+          if [ ${#team_files[@]} -eq 0 ]; then
+            echo "No team configuration files found. Exiting."
+            exit 0
+          fi
+
+          valid_team_files=()
+          for team_file in "${team_files[@]}"; do
             echo "Validating ${team_file}..."
-            if ! jq empty "$team_file" 2>/dev/null; then
-              echo "Invalid JSON found in ${team_file}"
-              error_count=$((error_count+1))
-            else
+            if jq empty "$team_file" 2>/dev/null; then
               echo "Valid JSON in ${team_file}"
+              valid_team_files+=("$team_file")
+            else
+              echo "Invalid JSON in ${team_file}"
             fi
           done
 
-          if [ $error_count -gt 0 ]; then
-            echo "Found $error_count invalid JSON file(s) in team configurations."
+          if [ ${#valid_team_files[@]} -eq 0 ]; then
+            echo "No valid team configuration files found. Exiting."
             exit 1
-          else
-            echo "All team configurations are valid."
           fi
 
-      - name: Manage Teams
-        run: |
-          # Improved function for team property extraction
-          get_team_properties() {
-            local team_json=$1
-            TEAM_NAME=$(echo "$team_json" | jq -r '.name')
-            TEAM_SLUG=$(echo "$TEAM_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-            TEAM_DESCRIPTION=$(echo "$team_json" | jq -r '.description // ""')
-            TEAM_PRIVACY=$(echo "$team_json" | jq -r '.privacy // "closed"')
-            TEAM_PERMISSION=$(echo "$team_json" | jq -r '.permission // "push"')
-            TEAM_NOTIFICATION=$(echo "$team_json" | jq -r '.notification_setting // "notifications_enabled"')
-          }
-
-          # Logging function
-          log_action() {
-            local action=$1
-            local team_name=$2
-            echo "[${action^^}] Team: $team_name"
-          }
-
-          # Fetch existing teams
+          # Fetch existing teams (by slug) from the organization
           mapfile -t existing_teams < <(gh api orgs/${{ github.repository_owner }}/teams --jq '.[].slug')
 
-          # Process team configurations using find to include hidden files
-          mapfile -t team_files < <(find ./org-team-configs -maxdepth 1 -type f -name "*.json")
-          for team_file in "${team_files[@]}"; do
-            [[ -e $team_file ]] || continue
-
+          # Process each valid team file
+          for team_file in "${valid_team_files[@]}"; do
             team=$(cat "$team_file")
-            get_team_properties "$team"
+            TEAM_NAME=$(echo "$team" | jq -r '.name')
+            TEAM_SLUG=$(echo "$TEAM_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+            TEAM_DESCRIPTION=$(echo "$team" | jq -r '.description // ""')
+            TEAM_PRIVACY=$(echo "$team" | jq -r '.privacy // "closed"')
+            TEAM_PERMISSION=$(echo "$team" | jq -r '.permission // "push"')
+            TEAM_NOTIFICATION=$(echo "$team" | jq -r '.notification_setting // "notifications_enabled"')
 
             if [[ " ${existing_teams[*]} " =~ ${TEAM_SLUG} ]]; then
-              log_action "update" "$TEAM_NAME"
-              gh api \
-                --method PATCH \
+              echo "[UPDATE] Team: ${TEAM_NAME}"
+              gh api --method PATCH \
                 -H "Accept: application/vnd.github+json" \
                 "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}" \
                 -f "name=${TEAM_NAME}" \
@@ -98,9 +83,8 @@ jobs:
                 -f "privacy=${TEAM_PRIVACY}" \
                 -f "notification_setting=${TEAM_NOTIFICATION}"
             else
-              log_action "create" "$TEAM_NAME"
-              gh api \
-                --method POST \
+              echo "[CREATE] Team: ${TEAM_NAME}"
+              gh api --method POST \
                 -H "Accept: application/vnd.github+json" \
                 "/orgs/${{ github.repository_owner }}/teams" \
                 -f "name=${TEAM_NAME}" \
@@ -108,143 +92,15 @@ jobs:
                 -f "privacy=${TEAM_PRIVACY}" \
                 -f "permission=${TEAM_PERMISSION}" \
                 -f "notification_setting=${TEAM_NOTIFICATION}"
-
             fi
           done
 
-          # Remove teams without configurations
+          # Remove teams that no longer have a corresponding config file
           for team_slug in "${existing_teams[@]}"; do
-            if ! compgen -G "./org-team-configs/${team_slug}.json" > /dev/null; then
-              log_action "delete" "$team_slug"
-              gh api \
-                --method DELETE \
+            if ! find ./org-team-configs -maxdepth 1 -type f -name "${team_slug}.json" | grep -q .; then
+              echo "[DELETE] Team: ${team_slug}"
+              gh api --method DELETE \
                 -H "Accept: application/vnd.github+json" \
                 "/orgs/${{ github.repository_owner }}/teams/${team_slug}"
             fi
-          done
-
-
-      - name: Manage Team Members
-        env:
-          DRY_RUN: ${{ inputs.dry-run }}
-        run: |
-          # Logging function for members
-          log_member_action() {
-            local action=$1
-            local team_name=$2
-            local username=$3
-            echo "[${action^^}] Team: $team_name, User: $username"
-          }
-
-          # Process each team configuration
-          for team_file in ./org-team-configs/*.json; do
-            [[ -e $team_file ]] || continue
-
-            team=$(cat "$team_file")
-            TEAM_NAME=$(echo "$team" | jq -r '.name')
-            TEAM_SLUG=$(echo "$TEAM_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-            TEAM_MEMBERS=$(echo "$team" | jq -c '.members // []')
-
-            # Get current team and organization members
-            current_members=$(gh api "orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/members" --jq '.[].login')
-            current_org_members=$(gh api "/orgs/${{ github.repository_owner }}/members" --jq '.[].login')
-
-            # Add or update members
-            echo "$TEAM_MEMBERS" | jq -c '.[]' | while read -r member; do
-              username=$(echo "$member" | jq -r '.username')
-
-              # Check if user is an organization member
-              if echo "$current_org_members" | grep -qw "$username"; then
-                if [[ "$DRY_RUN" != "true" ]]; then
-
-                  log_member_action "add" "$TEAM_NAME" "$username"
-                  gh api \
-                    --method PUT \
-                    -H "Accept: application/vnd.github+json" \
-                    "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/memberships/${username}"
-                else
-                  log_member_action "would add" "$TEAM_NAME" "$username"
-                fi
-              else
-                echo "User $username is not a member of the organization. Skipping..."
-              fi
-            done
-
-            # Remove members not in the JSON file or not in the organization
-            for member in $current_members; do
-              is_org_member=$(echo "$current_org_members" | grep -qw "$member" && echo true || echo false)
-              is_member_in_json=$(echo "$TEAM_MEMBERS" | jq -e --arg member "$member" '.[] | select(.username == $member)' > /dev/null && echo true || echo false)
-
-              if [[ "$is_member_in_json" == "false" ]] || [[ "$is_org_member" == "false" ]]; then
-                if [[ "$DRY_RUN" != "true" ]]; then
-                  log_member_action "remove" "$TEAM_NAME" "$member"
-                  gh api \
-                    --method DELETE \
-                    -H "Accept: application/vnd.github+json" \
-                    "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/memberships/$member"
-                else
-                  log_member_action "would remove" "$TEAM_NAME" "$member"
-                fi
-              fi
-            done
-          done
-
-      - name: Delegate Teams Permissions
-        env:
-          DRY_RUN: ${{ inputs.dry-run }}
-        run: |
-          # Function to log actions
-          log_repo_action() {
-            local action=$1
-            local team_name=$2
-            local repo_name=$3
-            local permission=$4
-            echo "[${action^^}] Team: $team_name, Repo: $repo_name, Permission: $permission"
-          }
-
-          # Process each team configuration
-          for team_file in ./org-team-configs/*.json; do
-            [[ -e $team_file ]] || continue
-
-            team=$(cat "$team_file")
-            TEAM_NAME=$(echo "$team" | jq -r '.name')
-            TEAM_SLUG=$(echo "$TEAM_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-            REPOSITORIES=$(echo "$team" | jq -c '.repositories // []')
-
-            # Get currently assigned repositories
-            current_repos=$(gh api "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/repos" --jq '.[].full_name')
-
-            # Add or update repository permissions
-            echo "$REPOSITORIES" | jq -c '.[]' | while read -r repo; do
-              REPO_NAME=$(echo "$repo" | jq -r '.name')
-              REPO_PERMISSION=$(echo "$repo" | jq -r '.permissions // "push"')
-              FULL_REPO_NAME="${{ github.repository_owner }}/${REPO_NAME}"
-
-              if [[ "$DRY_RUN" != "true" ]]; then
-                log_repo_action "add" "$TEAM_NAME" "$REPO_NAME" "$REPO_PERMISSION"
-                gh api \
-                  --method PUT \
-                  -H "Accept: application/vnd.github+json" \
-                  "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/repos/${FULL_REPO_NAME}" \
-                  -f "permission=${REPO_PERMISSION}"
-              else
-                log_repo_action "would add" "$TEAM_NAME" "$REPO_NAME" "$REPO_PERMISSION"
-              fi
-            done
-
-            # Remove repositories no longer in configuration
-            for existing_repo in $current_repos; do
-              EXISTING_REPO_NAME=$(basename "$existing_repo")
-              if ! echo "$REPOSITORIES" | jq -e --arg repo "$EXISTING_REPO_NAME" '.[] | select(.name == $repo)' > /dev/null; then
-                if [[ "$DRY_RUN" != "true" ]]; then
-                  log_repo_action "remove" "$TEAM_NAME" "$EXISTING_REPO_NAME" "N/A"
-                  gh api \
-                    --method DELETE \
-                    -H "Accept: application/vnd.github+json" \
-                    "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/repos/${existing_repo}"
-                else
-                  log_repo_action "would remove" "$TEAM_NAME" "$EXISTING_REPO_NAME" "N/A"
-                fi
-              fi
-            done
           done
