@@ -28,8 +28,8 @@ jobs:
 
       - name: Deploy repository settings from central config
         run: |
-          # Loop through every JSON config file in the .github/repo-settings folder.
-          for file in .github/repo-settings/*.json; do
+          # Loop through every JSON config file in the repo-settings folder.
+          for file in repo-settings/*.json; do
             echo "Processing $file..."
             # Extract the full repository name from the JSON config.
             full_name=$(jq -r '.full_name' "$file")
