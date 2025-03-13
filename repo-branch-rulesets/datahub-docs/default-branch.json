@@ -48,6 +48,19 @@
     },
     {
       "type": "creation"
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          {
+            "context": "Lint",
+            "integration_id": 15368
+          }
+        ]
+      }
     }
   ],
   "bypass_actors": [
