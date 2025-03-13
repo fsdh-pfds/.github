@@ -153,8 +153,6 @@ jobs:
                   -H "Accept: application/vnd.github+json" \
                   "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/memberships/${member}" \
                   --silent
-              else
-                echo "[KEEP] ${member} remains in ${TEAM_NAME}."
               fi
             done
           done
