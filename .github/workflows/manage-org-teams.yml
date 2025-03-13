@@ -88,8 +88,9 @@ jobs:
           # Fetch existing teams
           mapfile -t existing_teams < <(gh api orgs/${{ github.repository_owner }}/teams --jq '.[].slug')
 
-          # Process team configurations
-          for team_file in ./org-team-configs/*.json; do
+          # Process team configurations using find to include hidden files
+          mapfile -t team_files < <(find ./org-team-configs -maxdepth 1 -type f -name "*.json")
+          for team_file in "${team_files[@]}"; do
             [[ -e $team_file ]] || continue
 
             team=$(cat "$team_file")
@@ -135,6 +136,7 @@ jobs:
               fi
             fi
           done
+
 
       - name: Manage Team Members
         env:
