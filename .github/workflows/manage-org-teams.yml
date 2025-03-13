@@ -109,8 +109,6 @@ jobs:
           done
 
       - name: Manage Team Members
-        env:
-          DRY_RUN: ${{ inputs.dry-run }}
         run: |
           set -euo pipefail
 
@@ -133,15 +131,13 @@ jobs:
             echo "$TEAM_MEMBERS" | jq -c '.[]' | while read -r member; do
               username=$(echo "$member" | jq -r '.username')
               if echo "$org_members_str" | grep -qw "$username"; then
-                if [[ "$DRY_RUN" != "true" ]]; then
-                  echo "[ADD] Team: ${TEAM_NAME}, User: ${username}"
-                  gh api --method PUT \
-                    -H "Accept: application/vnd.github+json" \
-                    "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/memberships/${username}" \
-                    --silent
-                else
-                  echo "[WOULD ADD] Team: ${TEAM_NAME}, User: ${username}"
-                fi
+
+                echo "[ADD] Team: ${TEAM_NAME}, User: ${username}"
+                gh api --method PUT \
+                  -H "Accept: application/vnd.github+json" \
+                  "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/memberships/${username}" \
+                  --silent
+
               else
                 echo "User ${username} is not an organization member. Skipping..."
               fi
@@ -150,15 +146,13 @@ jobs:
             # Remove members not present in the config
             for member in "${current_members[@]}"; do
               if ! echo "$TEAM_MEMBERS" | jq -e --arg member "$member" 'map(.username) | index($member)' >/dev/null; then
-                if [[ "$DRY_RUN" != "true" ]]; then
-                  echo "[REMOVE] Team: ${TEAM_NAME}, User: ${member}"
-                  gh api --method DELETE \
-                    -H "Accept: application/vnd.github+json" \
-                    "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/memberships/${member}" \
-                    --silent
-                else
-                  echo "[WOULD REMOVE] Team: ${TEAM_NAME}, User: ${member}"
-                fi
+
+                echo "[REMOVE] Team: ${TEAM_NAME}, User: ${member}"
+                gh api --method DELETE \
+                  -H "Accept: application/vnd.github+json" \
+                  "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/memberships/${member}" \
+                  --silent
+
               fi
             done
           done
