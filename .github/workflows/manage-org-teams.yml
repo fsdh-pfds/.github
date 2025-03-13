@@ -116,12 +116,10 @@ jobs:
           for team_slug in "${existing_teams[@]}"; do
             if ! compgen -G "./org-team-configs/${team_slug}.json" > /dev/null; then
               log_action "delete" "$team_slug"
-              if [[ "$DRY_RUN" != "true" ]]; then
-                gh api \
-                  --method DELETE \
-                  -H "Accept: application/vnd.github+json" \
-                  "/orgs/${{ github.repository_owner }}/teams/${team_slug}"
-              fi
+              gh api \
+                --method DELETE \
+                -H "Accept: application/vnd.github+json" \
+                "/orgs/${{ github.repository_owner }}/teams/${team_slug}"
             fi
           done
 
