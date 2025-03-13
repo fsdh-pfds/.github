@@ -38,5 +38,5 @@ jobs:
               continue
             fi
             echo "Updating repository: $full_name"
-            gh api -X PATCH "repos/${full_name}" -d @"$file"
+            gh api -X PATCH "repos/${full_name}" --input "$file"
           done
