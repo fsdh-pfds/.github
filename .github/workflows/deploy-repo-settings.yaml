@@ -30,7 +30,7 @@ jobs:
       - name: Set up GitHub CLI
         run: gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
 
-      - name: Deploy repository settings from central config
+      - name: Enforcing repository settings
         run: |
           # Loop through every JSON config file in the repo-settings folder.
           for file in repo-settings/*.json; do
