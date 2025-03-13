@@ -73,7 +73,8 @@ jobs:
             TEAM_PERMISSION=$(echo "$team" | jq -r '.permission // "push"')
             TEAM_NOTIFICATION=$(echo "$team" | jq -r '.notification_setting // "notifications_enabled"')
 
-            if [[ " ${existing_teams[*]} " =~ ${TEAM_SLUG} ]]; then
+            # Use grep -qx for an exact match on TEAM_SLUG in the list of existing teams
+            if printf '%s\n' "${existing_teams[@]}" | grep -qx "${TEAM_SLUG}"; then
               echo "[UPDATE] Team: ${TEAM_NAME}"
               gh api --method PATCH \
                 -H "Accept: application/vnd.github+json" \
@@ -81,7 +82,8 @@ jobs:
                 -f "name=${TEAM_NAME}" \
                 -f "description=${TEAM_DESCRIPTION}" \
                 -f "privacy=${TEAM_PRIVACY}" \
-                -f "notification_setting=${TEAM_NOTIFICATION}"
+                -f "notification_setting=${TEAM_NOTIFICATION}" \
+                --silent
             else
               echo "[CREATE] Team: ${TEAM_NAME}"
               gh api --method POST \
@@ -91,7 +93,8 @@ jobs:
                 -f "description=${TEAM_DESCRIPTION}" \
                 -f "privacy=${TEAM_PRIVACY}" \
                 -f "permission=${TEAM_PERMISSION}" \
-                -f "notification_setting=${TEAM_NOTIFICATION}"
+                -f "notification_setting=${TEAM_NOTIFICATION}" \
+                --silent
             fi
           done
 
@@ -101,6 +104,7 @@ jobs:
               echo "[DELETE] Team: ${team_slug}"
               gh api --method DELETE \
                 -H "Accept: application/vnd.github+json" \
-                "/orgs/${{ github.repository_owner }}/teams/${team_slug}"
+                "/orgs/${{ github.repository_owner }}/teams/${team_slug}" \
+                --silent
             fi
           done
