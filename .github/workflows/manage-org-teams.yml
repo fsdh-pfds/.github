@@ -156,3 +156,53 @@ jobs:
               fi
             done
           done
+
+      - name: Delegate Teams Permissions
+        run: |
+          set -euo pipefail
+
+          # Get all team configuration files (including hidden ones)
+          mapfile -t team_files < <(find ./org-team-configs -maxdepth 1 -type f -name "*.json")
+
+          for team_file in "${team_files[@]}"; do
+            echo "Processing team config: $team_file"
+            team=$(cat "$team_file")
+            TEAM_NAME=$(echo "$team" | jq -r '.name')
+            TEAM_SLUG=$(echo "$TEAM_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+            REPOSITORIES=$(echo "$team" | jq -c '.repositories // []')
+
+            # Fetch currently assigned repositories (full names) for this team
+            current_repos=$(gh api "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/repos" --jq '.[].full_name')
+
+            # For each repository defined in the config, assign the team
+            echo "$REPOSITORIES" | jq -c '.[]' | while read -r repo; do
+              REPO_NAME=$(echo "$repo" | jq -r '.name')
+              REPO_PERMISSION=$(echo "$repo" | jq -r '.permissions // "push"')
+              FULL_REPO_NAME="${{ github.repository_owner }}/${REPO_NAME}"
+
+              echo "[ADD] Assigning ${TEAM_NAME} to ${FULL_REPO_NAME} with permission ${REPO_PERMISSION}"
+              gh api --method PUT \
+                -H "Accept: application/vnd.github+json" \
+                "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/repos/${FULL_REPO_NAME}" \
+                -f "permission=${REPO_PERMISSION}" \
+                --silent
+
+            done
+
+            # Remove repositories that are currently assigned but not listed in the config
+            for existing_repo in $current_repos; do
+              # Extract the repository name (assumes FULL_REPO_NAME format "org/repo")
+              EXISTING_REPO_NAME=$(basename "$existing_repo")
+              if ! echo "$REPOSITORIES" | jq -e --arg repo "$EXISTING_REPO_NAME" 'map(.name) | index($repo)' >/dev/null; then
+
+                echo "[REMOVE] Removing ${TEAM_NAME} assignment from ${existing_repo}"
+                gh api --method DELETE \
+                  -H "Accept: application/vnd.github+json" \
+                  "/orgs/${{ github.repository_owner }}/teams/${TEAM_SLUG}/repos/${existing_repo}" \
+                  --silent
+
+              else
+                echo "[KEEP] ${existing_repo} remains configured for ${TEAM_NAME}"
+              fi
+            done
+          done
