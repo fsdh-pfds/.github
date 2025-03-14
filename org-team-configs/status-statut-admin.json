@@ -1,0 +1,22 @@
+{
+  "name": "status-statut-admin",
+  "description": "status repo admin",
+  "privacy": "closed",
+  "notification_setting": "notifications_enabled",
+  "members": [
+    {
+      "username": "kingbain",
+      "role": "member"
+    },
+    {
+      "username": "simon-wang-gc",
+      "role": "member"
+    }
+  ],
+  "repositories": [
+    {
+      "name": "status-statut",
+      "permissions": "admin"
+    }
+  ]
+}
