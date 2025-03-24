@@ -1,0 +1,16 @@
+{
+  "name": "datahub-dns-write",
+  "description": "FSDH Code Contributors to the datahub-dns repo",
+  "privacy": "closed",
+  "notification_setting": "notifications_enabled",
+  "members": [
+    { "username": "KingBain", "role": "member" },
+    { "username": "simon-wang-gc", "role": "member" }
+  ],
+  "repositories": [
+    {
+      "name": "datahub-dns",
+      "permissions": "push"
+    }
+  ]
+}
