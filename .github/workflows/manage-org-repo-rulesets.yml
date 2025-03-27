@@ -19,13 +19,13 @@ jobs:
     steps:
       - name: Convert App token (GitHub App with repo admin perms)
         id: create_token
-        uses: getsentry/action-github-app-token@v3.0.0
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
         with:
           app_id: ${{ vars.FSDH_REPO_ADMIN_APP_ID }}
           private_key: ${{ secrets.FSDH_REPO_ADMIN_APP_KEY }}
 
       - name: Checkout management repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Set up GitHub CLI
         run: |
