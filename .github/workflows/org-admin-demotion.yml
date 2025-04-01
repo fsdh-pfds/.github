@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Obtain App Token
-        uses: philips-software/app-token-action@v1.1.2
+        uses: philips-software/app-token-action@ddb544d2e22624a7d7a76fd9de3d4bc0a5f41660 # v2.0.1
         id: token
         with:
           app_id: ${{ vars.APP_ID }}
