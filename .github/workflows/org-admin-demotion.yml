@@ -15,7 +15,7 @@ jobs:
         uses: philips-software/app-token-action@v1.1.2
         id: token
         with:
-          app_id: ${{ secrets.APP_ID }}
+          app_id: ${{ vars.APP_ID }}
           app_base64_private_key: ${{ secrets.APP_PRIVATE_KEY_BASE64 }}
           auth_type: installation
 
