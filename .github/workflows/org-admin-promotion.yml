@@ -18,7 +18,7 @@ jobs:
         uses: philips-software/app-token-action@v1.1.2
         id: token
         with:
-          app_id: ${{ secrets.FSDH_ORG_ADMIN_PROMOTION_APP_ID }}
+          app_id: ${{ values.FSDH_ORG_ADMIN_PROMOTION_APP_ID }}
           app_base64_private_key: ${{ secrets.FSDH_ORG_ADMIN_PROMOTION_APP_KEY }}
           auth_type: installation
 
