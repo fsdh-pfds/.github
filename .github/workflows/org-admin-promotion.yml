@@ -9,32 +9,37 @@ on:
 jobs:
   promote-org-admin:
     runs-on: ubuntu-latest
+    outputs:
+      usernames: ${{ steps.collect.outputs.usernames }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Check for Org Admin Request File
-        id: check_request
+      - name: Collect Request Files and Build Username List
+        id: collect
         run: |
-          # List all JSON files in the org-admin folder.
+          # Find all JSON files in the org-admin folder.
           files=$(find ./org-admin -type f -name "*.json")
           if [ -z "$files" ]; then
-            echo "No request file found. Exiting."
+            echo "No JSON request files found."
+            echo "usernames=" >> $GITHUB_OUTPUT
             exit 0
-          else
-            echo "Found request files:"
-            echo "$files"
-            # For simplicity, take the first file found. You can modify this to iterate over multiple files.
-            request_file=$(echo "$files" | head -n 1)
-            echo "request_file=$request_file" >> $GITHUB_OUTPUT
           fi
-
-      - name: Parse Request File
-        id: parse_request
-        run: |
-          request_file="${{ steps.check_request.outputs.request_file }}"
-          username=$(jq -r '.username' "$request_file")
-          echo "username=$username" >> $GITHUB_OUTPUT
+          echo "Found JSON request files:"
+          echo "$files"
+          # Initialize an empty list
+          user_list=""
+          # Loop through each file and extract the username field using jq.
+          for file in $files; do
+            username=$(jq -r '.username' "$file")
+            if [ -z "$user_list" ]; then
+              user_list="$username"
+            else
+              user_list="$user_list,$username"
+            fi
+          done
+          echo "Usernames to promote: $user_list"
+          echo "usernames=$user_list" >> $GITHUB_OUTPUT
 
       - name: Create App token
         id: create_token
@@ -43,3 +48,42 @@ jobs:
           app-id: ${{ vars.FSDH_TEAM_ADMIN_APP_ID }}
           private-key: ${{ secrets.FSDH_TEAM_ADMIN_APP_KEY }}
           owner: ${{ github.repository_owner }}
+
+      - name: Promote Users to Org Admin
+        id: promote_admin
+        run: |
+          # Split the comma-separated list into an array
+          IFS=',' read -r -a usernames_array <<< "${{ steps.collect.outputs.usernames }}"
+          org="${{ github.repository_owner }}"  # Replace with your actual organization name if needed
+          token="${{ steps.create_token.outputs.token }}"
+          for username in "${usernames_array[@]}"; do
+            echo "Processing user: $username"
+            # Verify that the user is a member of the organization.
+            response=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $token" \
+              https://api.github.com/orgs/$org/members/$username)
+            if [ "$response" -ne 204 ]; then
+              echo "User $username is not a member of the organization. Skipping."
+              continue
+            fi
+            # Promote the user by updating their organization membership to admin.
+            curl -X PATCH \
+              -H "Authorization: Bearer $token" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/orgs/$org/memberships/$username \
+              -d '{"role": "admin"}'
+            echo "User $username has been promoted to org admin."
+          done
+
+      - name: Log Promotion
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const usernames = "${{ steps.collect.outputs.usernames }}".split(',');
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `✅ Admin access granted to: ${usernames.join(', ')} based on updated JSON requests.`
+            });
