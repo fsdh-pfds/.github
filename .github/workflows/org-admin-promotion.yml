@@ -1,50 +1,45 @@
-name: Org Admin Escalation Promotion Workflow
+name: Promote Org Admin on JSON Change
 
 on:
-  issues:
-    types: [opened, labeled, unlabeled]
+  workflow_dispatch:
+  push:
+    paths:
+      - "org-admin/**/*.json"
 
 jobs:
-  approve_and_promote:
+  promote-org-admin:
     runs-on: ubuntu-latest
-    # Only proceed if the issue has an 'approved' label
-    if: >
-      contains(github.event.issue.labels.*.name, 'approved')
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - uses: actions/create-github-app-token@v1
-        id: app-token
-        with:
-          app-id: ${{ vars.FSDH_ORG_ADMIN_PROMOTION_APP_ID }}
-          private-key: ${{ secrets.FSDH_ORG_ADMIN_PROMOTION_APP_KEY }}
+      - name: Check for Org Admin Request File
+        id: check_request
+        run: |
+          # List all JSON files in the org-admin folder.
+          files=$(find ./org-admin -type f -name "*.json")
+          if [ -z "$files" ]; then
+            echo "No request file found. Exiting."
+            exit 0
+          else
+            echo "Found request files:"
+            echo "$files"
+            # For simplicity, take the first file found. You can modify this to iterate over multiple files.
+            request_file=$(echo "$files" | head -n 1)
+            echo "request_file=$request_file" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Parse Issue for Target Org and Duration
-        id: parse
-        uses: 040code/admin-support-issueops-actions/admin-support-cli@v1.0.0
-        with:
-          action: "parse_issue"
-          issue_number: ${{ github.event.issue.number }}
+      - name: Parse Request File
+        id: parse_request
+        run: |
+          request_file="${{ steps.check_request.outputs.request_file }}"
+          username=$(jq -r '.username' "$request_file")
+          echo "username=$username" >> $GITHUB_OUTPUT
 
-      - name: Promote User to Admin
-        id: promote
-        uses: 040code/admin-support-issueops-actions/admin-support-cli@v1.0.0
+      - name: Create App token
+        id: create_token
+        uses: actions/create-github-app-token@v1
         with:
-          action: "promote_demote"
-          username: ${{ github.event.issue.user.login }}
-          target_org: ${{ steps.parse.outputs.target_org }}
-          role: "admin"
-          admin_token: ${{ steps.token.outputs.token }}
-
-      - name: Comment on Promotion Success
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: "✅ Admin access has been granted to @${{ github.event.issue.user.login }}. The escalation request is approved and processed."
-            })
+          app-id: ${{ vars.FSDH_TEAM_ADMIN_APP_ID }}
+          private-key: ${{ secrets.FSDH_TEAM_ADMIN_APP_KEY }}
+          owner: ${{ github.repository_owner }}
