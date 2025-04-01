@@ -64,6 +64,8 @@ jobs:
           for username in "${usernames_array[@]}"; do
             echo "Processing user: $username"
             # Verify that the user is a member of the organization.
+            gh api "/orgs/${{ github.repository_owner }}/members
+            
             member=$(gh api /orgs/${{ github.repository_owner }}/members/$username --jq '.login' 2>/dev/null || echo "")
             if [ -z "$member" ]; then
               echo "User $username is not a member of the organization. Skipping."
