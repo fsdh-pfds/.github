@@ -1,49 +1,60 @@
-name: Admin Escalation Demotion Workflow
+name: Admin Deprovisioning
 
 on:
-  issues:
-    types: [closed]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *" # Runs every hour
 
 jobs:
-  demote:
+  deprovision:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Obtain App Token
-        uses: philips-software/app-token-action@v1.1.2
-        id: token
-        with:
-          app_id: ${{ vars.APP_ID }}
-          app_base64_private_key: ${{ secrets.APP_PRIVATE_KEY_BASE64 }}
-          auth_type: installation
+      - name: Process Expired Admin Requests
+        run: |
+          org="${{ github.repository_owner }}"
+          # Find all JSON files in the org-admin folder.
+          for file in $(find ./org-admin -type f -name "*.json"); do
+            echo "Processing file: $file"
+            # Extract username and duration from the JSON file.
+            username=$(jq -r '.username' "$file")
+            duration=$(jq -r '.duration' "$file")
+            echo "Username: $username, Duration: $duration hour(s)"
 
-      - name: Parse Issue for Target Org
-        id: parse
-        uses: 040code/admin-support-issueops-actions/admin-support-cli@v1.0.0
-        with:
-          action: "parse_issue"
-          issue_number: ${{ github.event.issue.number }}
+            # Get the commit timestamp (Unix epoch) for the file's last commit.
+            commit_ts=$(git log -1 --format=%ct "$file")
+            echo "File commit timestamp: $commit_ts"
 
-      - name: Demote User to Member
-        id: demote
-        uses: 040code/admin-support-issueops-actions/admin-support-cli@v1.0.0
-        with:
-          action: "promote_demote"
-          username: ${{ github.event.issue.user.login }}
-          target_org: ${{ steps.parse.outputs.target_org }}
-          role: "member"
-          admin_token: ${{ steps.token.outputs.token }}
+            # Convert duration from hours to seconds.
+            duration_seconds=$(( duration * 3600 ))
+            # Calculate the expiration timestamp.
+            expiration=$(( commit_ts + duration_seconds ))
+            # Get the current Unix timestamp.
+            current_ts=$(date +%s)
+            echo "Expiration timestamp: $expiration, Current timestamp: $current_ts"
 
-      - name: Comment on Demotion Success
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: "🔒 Admin access has been revoked from @${{ github.event.issue.user.login }}."
-            })
+            # If the current time is greater than or equal to the expiration, proceed.
+            if [ "$current_ts" -ge "$expiration" ]; then
+              echo "Request for $username expired. Demoting user and removing file."
+              # Demote the user: update their org membership to "member" using gh CLI.
+              gh api -X PATCH "/orgs/$org/memberships/$username" -f role=member --silent
+              # Remove the request file.
+              git rm "$file"
+            else
+              echo "Request for $username is still valid."
+            fi
+          done
+
+      - name: Commit and Push Changes
+        run: |
+          # If any files were removed, commit and push the changes.
+          if [ -n "$(git status --porcelain)" ]; then
+            git config --global user.name "automation-bot"
+            git config --global user.email "automation-bot@example.com"
+            git commit -m "Remove expired admin requests"
+            git push
+          else
+            echo "No expired requests to remove."
+          fi

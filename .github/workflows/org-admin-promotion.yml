@@ -1,4 +1,4 @@
-name: Promote Org Admin on JSON Change
+name: Promote to Org Admin
 
 on:
   workflow_dispatch:
@@ -79,15 +79,3 @@ jobs:
             gh api -X PUT "/orgs/${{ github.repository_owner }}/memberships/$username" -f role=admin --silent
             echo "User $username has been promoted to org admin."
           done
-
-      - name: Log Promotion
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const usernames = "${{ steps.collect.outputs.usernames }}".split(',');
-            github.rest.repos.createCommitComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: context.sha,
-              body: `✅ Admin access granted to: ${usernames.join(', '
