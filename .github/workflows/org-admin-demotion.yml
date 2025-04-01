@@ -37,7 +37,7 @@ jobs:
           admin_token: ${{ steps.token.outputs.token }}
 
       - name: Comment on Demotion Success
-        uses: actions/github-script@v6
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
