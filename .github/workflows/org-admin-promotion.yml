@@ -27,7 +27,7 @@ jobs:
           fi
           echo "Found JSON request files:"
           echo "$files"
-          # Initialize an empty list
+          # Initialize an empty list.
           user_list=""
           # Loop through each file and extract the username field using jq.
           for file in $files; do
@@ -49,29 +49,28 @@ jobs:
           private-key: ${{ secrets.FSDH_TEAM_ADMIN_APP_KEY }}
           owner: ${{ github.repository_owner }}
 
-      - name: Promote Users to Org Admin
+      - name: Set up GitHub CLI
+        run: |
+          # Login with the app token generated above.
+          gh auth login --with-token < <(echo "${{ steps.create_token.outputs.token }}")
+
+      - name: Promote Users to Org Admin using gh CLI
         id: promote_admin
         run: |
-          # Split the comma-separated list into an array
+          # Split the comma-separated list into an array.
           IFS=',' read -r -a usernames_array <<< "${{ steps.collect.outputs.usernames }}"
-          org="${{ github.repository_owner }}"  # Replace with your actual organization name if needed
-          token="${{ steps.create_token.outputs.token }}"
+
+
           for username in "${usernames_array[@]}"; do
             echo "Processing user: $username"
             # Verify that the user is a member of the organization.
-            response=$(curl -s -o /dev/null -w "%{http_code}" \
-              -H "Authorization: Bearer $token" \
-              https://api.github.com/orgs/$org/members/$username)
-            if [ "$response" -ne 204 ]; then
+            member=$(gh api /orgs/${{ github.repository_owner }}/members/$username --jq '.login' 2>/dev/null || echo "")
+            if [ -z "$member" ]; then
               echo "User $username is not a member of the organization. Skipping."
               continue
             fi
-            # Promote the user by updating their organization membership to admin.
-            curl -X PATCH \
-              -H "Authorization: Bearer $token" \
-              -H "Accept: application/vnd.github+json" \
-              https://api.github.com/orgs/$org/memberships/$username \
-              -d '{"role": "admin"}'
+            # Promote the user by updating their membership to admin.
+            gh api -X PATCH /orgs/${{ github.repository_owner }}/memberships/$username -f role=admin
             echo "User $username has been promoted to org admin."
           done
 
@@ -85,5 +84,4 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: context.sha,
-              body: `✅ Admin access granted to: ${usernames.join(', ')} based on updated JSON requests.`
-            });
+              body: `✅ Admin access granted to: ${usernames.join(', '
