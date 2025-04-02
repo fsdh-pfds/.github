@@ -30,10 +30,10 @@ jobs:
 
       - name: Process Expired Admin Requests
         run: |
-          org="${{ github.repository_owner }}"
-          # Find all JSON files in the org-admin folder.
-          for file in $(find ./org-admin -type f -name "*.json"); do
+          # Using a while-read loop with null termination for robust filename handling.
+          find ./org-admin -type f -name "*.json" -print0 | while IFS= read -r -d '' file; do
             echo "Processing file: $file"
+
             # Extract username and duration from the JSON file.
             username=$(jq -r '.username' "$file")
             duration=$(jq -r '.duration' "$file")
@@ -45,8 +45,10 @@ jobs:
 
             # Convert duration from hours to seconds.
             duration_seconds=$(( duration * 3600 ))
+
             # Calculate the expiration timestamp.
             expiration=$(( commit_ts + duration_seconds ))
+
             # Get the current Unix timestamp.
             current_ts=$(date +%s)
             echo "Expiration timestamp: $expiration, Current timestamp: $current_ts"
@@ -54,9 +56,9 @@ jobs:
             # If the current time is greater than or equal to the expiration, proceed.
             if [ "$current_ts" -ge "$expiration" ]; then
               echo "Request for $username expired. Demoting user and removing file."
+
               # Demote the user: update their org membership to "member" using gh CLI.
               gh api -X PUT "/orgs/${{ github.repository_owner }}/memberships/$username" -f role=member --silent
-              # Remove the request file.
               git rm "$file"
             else
               echo "Request for $username is still valid."
