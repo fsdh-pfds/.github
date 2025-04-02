@@ -7,8 +7,6 @@ on:
 
 jobs:
   deprovision:
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Create App token
@@ -25,7 +23,7 @@ jobs:
           gh auth login --with-token < <(echo "${{ steps.create_token.outputs.token }}")
 
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Fetch full history instead of a shallow clone
           token: ${{ steps.create_token.outputs.token }}
@@ -71,11 +69,9 @@ jobs:
         run: |
           if [ -n "$(git status --porcelain)" ]; then
             git config --global user.name "FSDH Org Admin Manager App"
-            git config --global user.email "<${{ vars.FSDH_ORG_ADMIN_PROMOTION_APP_ID }}+FSDH Org Admin Manager App[bot]@users.noreply.github.com>"
+            git config --global user.email "<${{ vars.FSDH_TEAM_ADMIN_APP_ID }}+FSDH Org Admin Manager App[bot]@users.noreply.github.com>"
             git commit -m "Remove expired admin requests"
-            # Update the remote URL to include the app token for authentication
-            git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
-            git push origin HEAD:${{ github.ref }}
+            git push
           else
             echo "No expired requests to remove."
           fi
