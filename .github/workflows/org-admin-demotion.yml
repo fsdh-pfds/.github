@@ -1,4 +1,4 @@
-name: Admin Deprovisioning
+name: JIT Org Admin Cleanup
 
 on:
   workflow_dispatch:
@@ -24,7 +24,7 @@ jobs:
             echo "Username: $username, Duration: $duration hour(s)"
 
             # Get the commit timestamp (Unix epoch) for the file's last commit.
-            commit_ts=$(git log -1 --format=%ct "$file")
+            commit_ts=$(git log -1 --reverse --format=%ct "$file")
             echo "File commit timestamp: $commit_ts"
 
             # Convert duration from hours to seconds.

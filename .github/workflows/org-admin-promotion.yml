@@ -1,4 +1,4 @@
-name: Promote to Org Admin
+name: JIT Org Admin
 
 on:
   workflow_dispatch:
