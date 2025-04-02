@@ -1,0 +1,6 @@
+// This is a template for requesting org admin access. Rename the file to new-request.json and fill in the details.
+{
+  "username": "githubUserName", //set to username who needs org admin; case sensitive
+  "duration": 3, //set to the duration need in hours
+  "reason": "Need to create a new repo" //set to the reason for org admin
+}
