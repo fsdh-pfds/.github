@@ -67,8 +67,8 @@ jobs:
           GITHUB_TOKEN: ${{ steps.create_token.outputs.token }}
         run: |
           if [ -n "$(git status --porcelain)" ]; then
-            git config --global user.name "automation-bot"
-            git config --global user.email "automation-bot@example.com"
+            git config --global user.name "FSDH Org Admin Manager App"
+            git config --global user.email "${{ vars.FSDH_TEAM_ADMIN_APP_ID }}+FSDH Org Admin Manager App[bot]@users.noreply.github.com"
             git commit -m "Remove expired admin requests"
             # Configure Git to use the GitHub App token
             git push
