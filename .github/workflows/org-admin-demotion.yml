@@ -28,6 +28,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0  # Fetch full history instead of a shallow clone
+          token: ${{ steps.create_token.outputs.token }}
 
       - name: Process Expired Admin Requests
         run: |
