@@ -9,6 +9,19 @@ jobs:
   deprovision:
     runs-on: ubuntu-latest
     steps:
+      - name: Create App token
+        id: create_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.FSDH_TEAM_ADMIN_APP_ID }}
+          private-key: ${{ secrets.FSDH_TEAM_ADMIN_APP_KEY }}
+          owner: ${{ github.repository_owner }}
+          
+      - name: Set up GitHub CLI
+        run: |
+          # Login with the app token generated above.
+          gh auth login --with-token < <(echo "${{ steps.create_token.outputs.token }}")
+
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
