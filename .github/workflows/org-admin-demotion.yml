@@ -72,7 +72,9 @@ jobs:
             git config --global user.name "FSDH Org Admin Manager App"
             git config --global user.email "<${{ vars.FSDH_TEAM_ADMIN_APP_ID }}+FSDH Org Admin Manager App[bot]@users.noreply.github.com>"
             git commit -m "Remove expired admin requests"
-            git push
+            # Update the remote URL to include the app token for authentication
+            git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+            git push origin HEAD:${{ github.ref }}
           else
             echo "No expired requests to remove."
           fi
