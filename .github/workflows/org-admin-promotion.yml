@@ -18,28 +18,30 @@ jobs:
       - name: Collect Request Files and Build Username List
         id: collect
         run: |
-          # Find all JSON files in the org-admin folder.
-          files=$(find ./org-admin -type f -name "*.json")
-          if [ -z "$files" ]; then
-            echo "No JSON request files found."
-            echo "usernames=" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          echo "Found JSON request files:"
-          echo "$files"
           # Initialize an empty list.
           user_list=""
-          # Loop through each file and extract the username field using jq.
-          for file in $files; do
+
+          # Find and process JSON files using a while-read loop with null termination.
+          find ./org-admin -type f -name "*.json" -print0 | while IFS= read -r -d '' file; do
+            echo "Processing file: $file"
+
+            # Extract username from the JSON file.
             username=$(jq -r '.username' "$file")
+
             if [ -z "$user_list" ]; then
               user_list="$username"
             else
               user_list="$user_list,$username"
             fi
           done
-          echo "Usernames to promote: $user_list"
-          echo "usernames=$user_list" >> $GITHUB_OUTPUT
+
+          if [ -z "$user_list" ]; then
+            echo "No JSON request files found."
+            echo "usernames=" >> $GITHUB_OUTPUT
+          else
+            echo "Usernames to promote: $user_list"
+            echo "usernames=$user_list" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create App token
         id: create_token
@@ -75,6 +77,6 @@ jobs:
             fi
 
             # Promote the user by updating their membership to admin.
-            gh api -X PUT "/orgs/${{ github.repository_owner }}/memberships/$username" -f role=admin --silent
+            gh api ---method PUT "/orgs/${{ github.repository_owner }}/memberships/$username" -f role=admin --silent
             echo "User $username has been promoted to org admin."
           done

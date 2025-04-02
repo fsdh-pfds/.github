@@ -42,7 +42,7 @@ jobs:
               continue
             fi
             echo "Updating repository: $full_name"
-            if gh api -X PATCH "repos/${full_name}" --header "Content-Type: application/json" --input "$file" --silent; then
+            if gh api --method PATCH "repos/${full_name}" --header "Content-Type: application/json" --input "$file" --silent; then
               echo "Repository settings applied successfully for ${full_name}"
             else
               echo "Failed to update settings for ${full_name}"

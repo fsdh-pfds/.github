@@ -57,7 +57,7 @@ jobs:
               echo "Request for $username expired. Demoting user and removing file."
 
               # Demote the user: update their org membership to "member" using gh CLI.
-              gh api -X PUT "/orgs/${{ github.repository_owner }}/memberships/$username" -f role=member --silent
+              gh api --method PUT "/orgs/${{ github.repository_owner }}/memberships/$username" -f role=member --silent
               git rm "$file"
             else
               echo "Request for $username is still valid."
