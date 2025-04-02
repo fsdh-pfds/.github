@@ -64,11 +64,13 @@ jobs:
 
       - name: Commit and Push Changes
         run: |
-          # If any files were removed, commit and push the changes.
           if [ -n "$(git status --porcelain)" ]; then
             git config --global user.name "automation-bot"
             git config --global user.email "automation-bot@example.com"
             git commit -m "Remove expired admin requests"
+            # Configure Git to use the GitHub App token
+            git config --global credential.helper 'cache --timeout=300'
+            echo "https://x-access-token:${{ steps.create_token.outputs.token }}@github.com" | git credential approve
             git push
           else
             echo "No expired requests to remove."
