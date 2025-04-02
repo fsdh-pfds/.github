@@ -5,6 +5,8 @@ on:
   schedule:
     - cron: "0 * * * *" # Runs every hour
 
+permissions: read-all
+
 jobs:
   deprovision:
     runs-on: ubuntu-latest

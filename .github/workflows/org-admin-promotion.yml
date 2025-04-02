@@ -6,12 +6,26 @@ on:
     paths:
       - "org-admin/**/*.json"
 
+permissions: read-all
+
 jobs:
   promote-org-admin:
     runs-on: ubuntu-latest
     outputs:
       usernames: ${{ steps.collect.outputs.usernames }}
     steps:
+      - name: Create App token
+        id: create_token
+        uses: fsdh-pfds/.github/.github/actions/create-app-token@main
+        with:
+          app-id: ${{ vars.FSDH_TEAM_ADMIN_APP_ID }}
+          private-key: ${{ secrets.FSDH_TEAM_ADMIN_APP_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Set up GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -26,7 +40,7 @@ jobs:
             echo "Processing file: $file"
 
             # Extract username from the JSON file.
-            username=$(jq -r '.username' "$file")
+            username="$(jq -r '.username' "$file")"
 
             if [ -z "$user_list" ]; then
               user_list="$username"
@@ -37,23 +51,11 @@ jobs:
 
           if [ -z "$user_list" ]; then
             echo "No JSON request files found."
-            echo "usernames=" >> $GITHUB_OUTPUT
+            echo "usernames=" >> "$GITHUB_OUTPUT"
           else
             echo "Usernames to promote: $user_list"
-            echo "usernames=$user_list" >> $GITHUB_OUTPUT
+            echo "usernames=$user_list" >> "$GITHUB_OUTPUT"
           fi
-
-      - name: Create App token
-        id: create_token
-        uses: fsdh-pfds/.github/.github/actions/create-app-token@main
-        with:
-          app-id: ${{ vars.FSDH_TEAM_ADMIN_APP_ID }}
-          private-key: ${{ secrets.FSDH_TEAM_ADMIN_APP_KEY }}
-          owner: ${{ github.repository_owner }}
-
-      - name: Set up GitHub CLI
-        run: |
-          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
 
       - name: Promote Users to Org Admin using gh CLI
         id: promote_admin
