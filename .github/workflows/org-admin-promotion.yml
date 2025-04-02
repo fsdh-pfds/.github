@@ -51,8 +51,7 @@ jobs:
 
       - name: Set up GitHub CLI
         run: |
-          # Login with the app token generated above.
-          gh auth login --with-token < <(echo "${{ steps.create_token.outputs.token }}")
+          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
 
       - name: Promote Users to Org Admin using gh CLI
         id: promote_admin
