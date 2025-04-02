@@ -17,12 +17,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Convert App token (GitHub App with repo admin perms)
+      - name: Create App token
         id: create_token
-        uses: getsentry/action-github-app-token@v3.0.0
+        uses: fsdh-pfds/.github/.github/actions/create-app-token@main
         with:
-          app_id: ${{ vars.FSDH_REPO_ADMIN_APP_ID }}
-          private_key: ${{ secrets.FSDH_REPO_ADMIN_APP_KEY }}
+          app-id: ${{ vars.FSDH_REPO_ADMIN_APP_ID }}
+          private-key: ${{ secrets.FSDH_REPO_ADMIN_APP_KEY }}
 
       - name: Checkout management repo
         uses: actions/checkout@v4
@@ -76,7 +76,7 @@ jobs:
               echo "  -> '$n' (ID: ${ruleset_map[$n]})"
             done
 
-            
+
             # DELETE OBSOLETE RULESETS
             # For each existing ruleset name, see if there's a matching .json file.
             for n in "${!ruleset_map[@]}"; do

@@ -17,12 +17,12 @@ jobs:
   deploy_settings:
     runs-on: ubuntu-latest
     steps:
-      - name: Convert App token
+      - name: Create App token
         id: create_token
-        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc
+        uses: fsdh-pfds/.github/.github/actions/create-app-token@main
         with:
-          app_id: ${{ vars.FSDH_REPO_ADMIN_APP_ID }}
-          private_key: ${{ secrets.FSDH_REPO_ADMIN_APP_KEY }}
+          app-id: ${{ vars.FSDH_REPO_ADMIN_APP_ID }}
+          private-key: ${{ secrets.FSDH_REPO_ADMIN_APP_KEY }}
 
       - name: Checkout repository
         uses: actions/checkout@v4

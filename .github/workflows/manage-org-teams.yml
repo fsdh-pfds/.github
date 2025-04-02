@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Create App token
         id: create_token
-        uses: actions/create-github-app-token@v1
+        uses: fsdh-pfds/.github/.github/actions/create-app-token@main
         with:
           app-id: ${{ vars.FSDH_TEAM_ADMIN_APP_ID }}
           private-key: ${{ secrets.FSDH_TEAM_ADMIN_APP_KEY }}

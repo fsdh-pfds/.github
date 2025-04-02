@@ -11,12 +11,12 @@ jobs:
     steps:
       - name: Create App token
         id: create_token
-        uses: actions/create-github-app-token@v1
+        uses: fsdh-pfds/.github/.github/actions/create-app-token@main
         with:
           app-id: ${{ vars.FSDH_ORG_ADMIN_PROMOTION_APP_ID }}
           private-key: ${{ secrets.FSDH_ORG_ADMIN_PROMOTION_APP_KEY }}
           owner: ${{ github.repository_owner }}
-          
+
       - name: Set up GitHub CLI
         run: |
           # Login with the app token generated above.
@@ -25,7 +25,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history instead of a shallow clone
+          fetch-depth: 0 # Fetch full history instead of a shallow clone
           token: ${{ steps.create_token.outputs.token }}
 
       - name: Process Expired Admin Requests
