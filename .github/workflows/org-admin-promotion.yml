@@ -1,8 +1,9 @@
 name: JIT Org Admin
 
 on:
-  workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - "org-admin/**/*.json"
 
