@@ -1,4 +1,4 @@
-name: Configure Branch Protection Rulesets (Management Repo)
+name: Branch Protection Rulesets
 
 on:
   push:
@@ -23,6 +23,7 @@ jobs:
         with:
           app-id: ${{ vars.FSDH_REPO_ADMIN_APP_ID }}
           private-key: ${{ secrets.FSDH_REPO_ADMIN_APP_KEY }}
+          owner: ${{ github.repository_owner }}
 
       - name: Checkout management repo
         uses: actions/checkout@v4
