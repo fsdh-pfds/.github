@@ -13,13 +13,12 @@
 ## Repo Health Dashboard 
 
 ### .github
-![Open Issues](https://img.shields.io/github/issues/fsdh-pfds/.github)![Closed Issues](https://img.shields.io/github/issues-closed/fsdh-pfds/.github)
-
-![Pull Requests](https://img.shields.io/github/issues-pr/fsdh-pfds/.github) ![Closed Pull Requests](https://img.shields.io/github/issues-pr-closed/fsdh-pfds/.github) 
-
-![Last Commit](https://img.shields.io/github/last-commit/fsdh-pfds/.github)
 ![GitHub stars](https://img.shields.io/github/stars/fsdh-pfds/.github?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/fsdh-pfds/.github?style=social)
+
+
+![Last Commit](https://img.shields.io/github/last-commit/fsdh-pfds/.github)![Pull Requests](https://img.shields.io/github/issues-pr/fsdh-pfds/.github) ![Closed Pull Requests](https://img.shields.io/github/issues-pr-closed/fsdh-pfds/.github) 
+
 
 [![Branch Protection Rulesets](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-repo-rulesets.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-repo-rulesets.yml)
 [![Deploy Repository Settings](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-repo-settings.yaml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-repo-settings.yaml)
