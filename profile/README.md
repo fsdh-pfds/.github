@@ -13,8 +13,6 @@
 ## Repo Health Dashboard 
 
 ### .github
-[![Known Vulnerabilities](https://snyk.io/test/github/fsdh-pfds/.github/badge.svg)](https://snyk.io/test/github/fsdh-pfds/.github)
-
 ![Open Issues](https://img.shields.io/github/issues/fsdh-pfds/.github)![Closed Issues](https://img.shields.io/github/issues-closed/fsdh-pfds/.github)
 
 ![Pull Requests](https://img.shields.io/github/issues-pr/fsdh-pfds/.github) ![Closed Pull Requests](https://img.shields.io/github/issues-pr-closed/fsdh-pfds/.github) 
