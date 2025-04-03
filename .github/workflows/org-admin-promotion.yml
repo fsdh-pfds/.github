@@ -36,8 +36,8 @@ jobs:
           # Initialize an empty list.
           user_list=""
 
-          # Find and process JSON files using a while-read loop with null termination.
-          find ./org-admin -type f -name "*.json" -print0 | while IFS= read -r -d '' file; do
+          # Use process substitution to keep the loop in the current shell.
+          while IFS= read -r -d '' file; do
             echo "Processing file: $file"
 
             # Extract username from the JSON file.
@@ -48,7 +48,7 @@ jobs:
             else
               user_list="$user_list,$username"
             fi
-          done
+          done < <(find ./org-admin -type f -name "*.json" -print0)
 
           if [ -z "$user_list" ]; then
             echo "No JSON request files found."
