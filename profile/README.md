@@ -17,7 +17,7 @@
 ![GitHub forks](https://img.shields.io/github/forks/fsdh-pfds/.github?style=social)
 
 
-![Last Commit](https://img.shields.io/github/last-commit/fsdh-pfds/.github)![Pull Requests](https://img.shields.io/github/issues-pr/fsdh-pfds/.github) ![Closed Pull Requests](https://img.shields.io/github/issues-pr-closed/fsdh-pfds/.github) 
+![Last Commit](https://img.shields.io/github/last-commit/fsdh-pfds/.github) ![Pull Requests](https://img.shields.io/github/issues-pr/fsdh-pfds/.github) ![Closed Pull Requests](https://img.shields.io/github/issues-pr-closed/fsdh-pfds/.github) 
 
 
 [![Branch Protection Rulesets](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-repo-rulesets.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-repo-rulesets.yml)
@@ -27,3 +27,12 @@
 [![Manage Organization Members](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-members.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-members.yml)
 [![Manage Organization Teams](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-teams.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-teams.yml)
 [![Secret Scan](https://github.com/fsdh-pfds/.github/actions/workflows/secret-scanning.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/secret-scanning.yml)
+
+
+
+### ![Datahub-Docs]([https://github.com/fsdh-pfds/datahub-docs](https://github.com/fsdh-pfds/datahub-docs))
+![GitHub stars](https://img.shields.io/github/stars/fsdh-pfds/datahub-docs?style=social)
+![GitHub forks](https://img.shields.io/github/forks/fsdh-pfds/datahub-docs?style=social)
+
+
+![Last Commit](https://img.shields.io/github/last-commit/fsdh-pfds/datahub-docs) ![Pull Requests](https://img.shields.io/github/issues-pr/fsdh-pfds/datahub-docs) ![Closed Pull Requests](https://img.shields.io/github/issues-pr-closed/fsdh-pfds/datahub-docs) 
