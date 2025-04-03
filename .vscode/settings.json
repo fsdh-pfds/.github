@@ -1,4 +1,6 @@
 {
+  "files.insertFinalNewline": true,
+  "files.eol": "\n",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
   "terminal.integrated.shell.linux": "/bin/bash",
