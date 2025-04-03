@@ -1,0 +1,5 @@
+{
+  "username": "KingBain", //set to username who needs org admin; case sensitive
+  "duration": 3, //set to the duration need in hours
+  "reason": "This is a demo" //set to the reason for org admin
+}
