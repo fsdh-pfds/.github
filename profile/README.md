@@ -12,7 +12,7 @@
 -->
 ## Repo Health Dashboard 
 
-### .github
+### ![.github](https://github.com/fsdh-pfds/.github)
 ![GitHub stars](https://img.shields.io/github/stars/fsdh-pfds/.github?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/fsdh-pfds/.github?style=social)
 
