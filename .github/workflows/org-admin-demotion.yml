@@ -31,7 +31,6 @@ jobs:
 
       - name: Process Expired Admin Requests
         run: |
-          # Using process substitution so the loop runs in the current shell.
           while IFS= read -r -d '' file; do
             echo "Processing file: $file"
             # Extract username and duration from the JSON file.
