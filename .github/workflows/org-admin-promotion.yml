@@ -80,6 +80,6 @@ jobs:
             fi
 
             # Promote the user by updating their membership to admin.
-            gh api ---method PUT "/orgs/${{ github.repository_owner }}/memberships/$username" -f role=admin --silent
+            gh api --method PUT "/orgs/${{ github.repository_owner }}/memberships/$username" -f role=admin --silent
             echo "User $username has been promoted to org admin."
           done
