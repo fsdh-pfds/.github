@@ -6,44 +6,17 @@ on:
     paths:
       - "org-admin/**/*.json"
 
+permissions: read-all
+
 jobs:
   promote-org-admin:
     runs-on: ubuntu-latest
     outputs:
       usernames: ${{ steps.collect.outputs.usernames }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Collect Request Files and Build Username List
-        id: collect
-        run: |
-          # Find all JSON files in the org-admin folder.
-          files=$(find ./org-admin -type f -name "*.json")
-          if [ -z "$files" ]; then
-            echo "No JSON request files found."
-            echo "usernames=" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          echo "Found JSON request files:"
-          echo "$files"
-          # Initialize an empty list.
-          user_list=""
-          # Loop through each file and extract the username field using jq.
-          for file in $files; do
-            username=$(jq -r '.username' "$file")
-            if [ -z "$user_list" ]; then
-              user_list="$username"
-            else
-              user_list="$user_list,$username"
-            fi
-          done
-          echo "Usernames to promote: $user_list"
-          echo "usernames=$user_list" >> $GITHUB_OUTPUT
-
       - name: Create App token
         id: create_token
-        uses: actions/create-github-app-token@v1
+        uses: fsdh-pfds/.github/.github/actions/create-app-token@main
         with:
           app-id: ${{ vars.FSDH_TEAM_ADMIN_APP_ID }}
           private-key: ${{ secrets.FSDH_TEAM_ADMIN_APP_KEY }}
@@ -51,8 +24,38 @@ jobs:
 
       - name: Set up GitHub CLI
         run: |
-          # Login with the app token generated above.
-          gh auth login --with-token < <(echo "${{ steps.create_token.outputs.token }}")
+          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Collect Request Files and Build Username List
+        id: collect
+        run: |
+          # Initialize an empty list.
+          user_list=""
+
+          # Find and process JSON files using a while-read loop with null termination.
+          find ./org-admin -type f -name "*.json" -print0 | while IFS= read -r -d '' file; do
+            echo "Processing file: $file"
+
+            # Extract username from the JSON file.
+            username="$(jq -r '.username' "$file")"
+
+            if [ -z "$user_list" ]; then
+              user_list="$username"
+            else
+              user_list="$user_list,$username"
+            fi
+          done
+
+          if [ -z "$user_list" ]; then
+            echo "No JSON request files found."
+            echo "usernames=" >> "$GITHUB_OUTPUT"
+          else
+            echo "Usernames to promote: $user_list"
+            echo "usernames=$user_list" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Promote Users to Org Admin using gh CLI
         id: promote_admin
@@ -62,20 +65,20 @@ jobs:
 
           for username in "${usernames_array[@]}"; do
             echo "Processing user: $username"
-            
+
             # Verify that the user is a member of the organization by checking for a 204 status code.
             member=$(curl -L -s -o /dev/null -w "%{http_code}" \
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer ${{ steps.create_token.outputs.token }}" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "https://api.github.com/orgs/${{ github.repository_owner }}/members/$username")
-            
+
             if [ "$member" != "204" ]; then
               echo "User $username is not a member of the organization. Skipping."
               continue
             fi
-            
+
             # Promote the user by updating their membership to admin.
-            gh api -X PUT "/orgs/${{ github.repository_owner }}/memberships/$username" -f role=admin --silent
+            gh api ---method PUT "/orgs/${{ github.repository_owner }}/memberships/$username" -f role=admin --silent
             echo "User $username has been promoted to org admin."
           done
