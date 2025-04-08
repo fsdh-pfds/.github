@@ -37,7 +37,7 @@ jobs:
           echo "Organization: $ORG"
 
           # Calculate the date 60 days ago in YYYY-MM-DD format.
-          inactive_since=$(date -d '60 days ago' +%Y-%m-%d)
+          inactive_since=$(date -d '7 days ago' +%Y-%m-%d)
           echo "Checking for activity since: $inactive_since"
 
           MEMBERS_FILE="org-membership/members.json"
