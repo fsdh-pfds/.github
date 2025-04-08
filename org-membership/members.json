@@ -1,39 +1,53 @@
 {
   "members": [
     {
+      "username": "KingBain",
       "email": "john.bain@ssc-spc.gc.ca",
       "role": "direct_member"
     },
     {
+      "username": "ErikApption",
       "email": "erik.putrycz@ssc-spc.gc.ca",
       "role": "direct_member"
     },
     {
+      "username": "davidreneuw",
       "email": "david.rene@ssc-spc.gc.ca",
       "role": "direct_member"
     },
     {
+      "username": "skaza999",
       "email": "shiraz.kazarian@ssc-spc.gc.ca",
       "role": "direct_member"
     },
     {
+      "username": "simon-wang-gc",
       "email": "simon.wang@ssc-spc.gc.ca",
       "role": "direct_member"
     },
     {
+      "username": "deb-h576",
       "email": "debra.hamilton@ssc-spc.gc.ca",
       "role": "direct_member"
     },
     {
+      "username": "joeHachache",
       "email": "joe.hachache@ssc-spc.gc.ca",
       "role": "direct_member"
     },
     {
+      "username": "shudsky",
       "email": "Siovan.Gecelovsky@ssc-spc.gc.ca",
       "role": "direct_member"
     },
     {
+      "username": "vb-ssc",
       "email": "vladimir.bukharov@ssc-spc.gc.ca",
+      "role": "direct_member"
+    },
+    {
+      "username": "Sean-Stilwell",
+      "email": "sean.stilwell@ssc-spc.gc.ca",
       "role": "direct_member"
     }
   ]
