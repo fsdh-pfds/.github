@@ -15,8 +15,7 @@
 |--|--|
 | AC-1 |[![Manage Org Members](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-members.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-members.yml)  |
 |AC-2|[![Manage Organization Teams](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-teams.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-teams.yml)[![JIT Org Admin](https://github.com/fsdh-pfds/.github/actions/workflows/org-admin-promotion.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/org-admin-promotion.yml)[![JIT Org Admin Cleanup](https://github.com/fsdh-pfds/.github/actions/workflows/org-admin-demotion.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/org-admin-demotion.yml)|
-|AC-3, AC-4|![Static Badge](https://img.shields.io/badge/Github-Inherited-green?style=flat)
-|
+|AC-3, AC-4|![Static Badge](https://img.shields.io/badge/Github-Inherited-green?style=flat)|
 
 ## Repo Health Dashboard 
 
