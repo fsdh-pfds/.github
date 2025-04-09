@@ -15,8 +15,8 @@ jobs:
         id: create_token
         uses: fsdh-pfds/.github/.github/actions/create-app-token@main
         with:
-          app-id: ${{ vars.FSDH_REPO_ADMIN_APP_ID }}
-          private-key: ${{ secrets.FSDH_REPO_ADMIN_APP_KEY }}
+          app-id: ${{ vars.FSDH_ORG_EVENT_WATCHER_APP_ID }}
+          private-key: ${{ secrets.FSDH_ORG_EVENT_WATCHER_APP_KEY }}
           owner: ${{ github.repository_owner }}
 
       - name: Checkout Repository
