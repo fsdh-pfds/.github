@@ -36,7 +36,7 @@ jobs:
           echo "Filtering for events on or after: $SINCE"
 
           # Define the file for inactive users report inside the org-membership folder
-          INACTIVE_FILE="org-membership/inactive_users.json"
+          INACTIVE_FILE="org-membership/inactive.json"
           # Ensure the org-membership folder exists
           mkdir -p org-membership
           # Initialize the file with an empty JSON array

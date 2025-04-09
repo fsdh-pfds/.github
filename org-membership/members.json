@@ -1,6 +1,16 @@
 {
   "members": [
     {
+      "username": "fsdh-breakglass-01",
+      "email": "",
+      "role": "direct_member"
+    },
+    {
+      "username": "fsdh-breakglass-02",
+      "email": "",
+      "role": "direct_member"
+    },
+    {
       "username": "KingBain",
       "email": "john.bain@ssc-spc.gc.ca",
       "role": "direct_member"
