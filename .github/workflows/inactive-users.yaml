@@ -50,8 +50,13 @@ jobs:
             echo "Checking activity for $username"
 
             # Fetch all events, filter for the first match in the 90-day window
-            latest_event=$(gh api /users/"$username"/events?per_page=100 \
-              --paginate --jq '[.[] | select(.created_at >= env.SINCE and (.org.login == "fsdh-pfds"))][0]' || echo "")
+            #latest_event=$(gh api /users/"$username"/events?per_page=100 \
+            #  --paginate --jq '[.[] | select(.created_at >= env.SINCE and (.org.login == "fsdh-pfds"))][0]' || echo "")
+
+            latest_event=$(gh api /users/"$username"/events?per_page=30 \
+              --paginate | jq '[.[] | select(.created_at >= env.SINCE and (.org.login == "fsdh-pfds")) | {login: .actor.login, repo: .repo.name, org: (.org.login // "n/a"), event: .type, created_at: .created_at}] | sort_by(.created_at) | reverse | .[0]' || echo "")
+
+
 
             if [ -z "$latest_event" ] || [ "$latest_event" = "null" ]; then
               echo "User $username is stale" | tee -a "$OUTPUT_FILE"
