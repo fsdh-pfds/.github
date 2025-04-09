@@ -1,4 +1,4 @@
-name: Detect Inactive Users
+name: Check Member Activity
 
 on:
   schedule:
@@ -6,10 +6,8 @@ on:
   workflow_dispatch:
   push: {}
 
-permissions: read-all
-
 jobs:
-  detect-inactive:
+  check-activity:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,28 +15,28 @@ jobs:
         id: create_token
         uses: fsdh-pfds/.github/.github/actions/create-app-token@main
         with:
-          app-id: ${{ vars.FSDH_TEAM_ADMIN_APP_ID }}
-          private-key: ${{ secrets.FSDH_TEAM_ADMIN_APP_KEY }}
+          app-id: ${{ vars.FSDH_REPO_ADMIN_APP_ID }}
+          private-key: ${{ secrets.FSDH_REPO_ADMIN_APP_KEY }}
+          owner: ${{ github.repository_owner }}
 
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Detect Inactive Users
-        env:
-          TOKEN: ${{ steps.create_token.outputs.token }}
+      - name: Set up GitHub CLI
         run: |
-          #!/bin/bash
-          set -euo pipefail
+          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
 
-          echo "Starting inactive user detection..."
+      - name: Check Members Activity
+        run: |
+          echo "Starting member activity check..."
 
-          # Extract organization name from the repository context.
-          ORG=$(echo "$GITHUB_REPOSITORY" | cut -d'/' -f1)
-          echo "Organization: $ORG"
+          # Calculate the date 30 days ago (YYYY-MM-DD format)
+          SINCE=$(date -d "30 days ago" +%Y-%m-%d)
+          echo "Filtering for events on or after: $SINCE"
 
-          # Calculate the date 60 days ago in YYYY-MM-DD format.
-          inactive_since=$(date -d '7 days ago' +%Y-%m-%d)
-          echo "Checking for activity since: $inactive_since"
+          # Prepare the output file for reporting
+          OUTPUT_FILE="activity_report.txt"
+          echo "Activity Report for Organization Members:" > "$OUTPUT_FILE"
 
           MEMBERS_FILE="org-membership/members.json"
           if [ ! -f "$MEMBERS_FILE" ]; then
@@ -46,60 +44,23 @@ jobs:
             exit 1
           fi
 
-          # Initialize an array for inactive users.
-          inactive_users=()
-
-          # Loop through each member in the JSON file.
+          # Iterate over each member in the JSON file
           while IFS= read -r member; do
             username=$(echo "$member" | jq -r '.username')
-            email=$(echo "$member" | jq -r '.email')
-            role=$(echo "$member" | jq -r '.role')
-            
-            echo "Processing user: $username ($email), role: $role"
+            echo "Checking activity for $username"
 
-            # Build the query to filter by the actor (username) and events on/after inactive_since.
-            query=$(echo "actor:${username} created:>=${inactive_since}" | jq -sRr @uri)
-            
-            # Construct the Audit Log API URL with per_page=1 (one event is sufficient).
-            url="https://api.github.com/orgs/${ORG}/audit-log?q=${query}&per_page=1"
-            echo "Querying audit log for $username..."
-            
-            # Fetch the audit log event.
-            response=$(curl -s -L \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer $TOKEN" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "$url")
+            latest_event=$(gh api /users/"$username"/events/orgs/${{ github.repository_owner }} \
+              --jq '[.[] | select(.created_at >= env.SINCE)][0]' || echo "")
 
-            # Determine if there's at least one event.
-            event_count=$(echo "$response" | jq 'length')
-
-            if [ "$event_count" -eq 0 ]; then
-              echo "User $username is INACTIVE (no events in the last 60 days)."
-              inactive_users+=("$username")
+            if [ -z "$latest_event" ] || [ "$latest_event" = "null" ]; then
+              echo "User $username is stale (no event found in the last 30 days)." | tee -a "$OUTPUT_FILE"
             else
-              echo "User $username is active with $event_count event(s)."
+              # Extract event type and created_at date from the latest event
+              event_type=$(echo "$latest_event" | jq -r '.type')
+              event_date=$(echo "$latest_event" | jq -r '.created_at')
+              echo "User $username is active: Last event '$event_type' at $event_date" | tee -a "$OUTPUT_FILE"
             fi
           done < <(jq -c '.members[]' "$MEMBERS_FILE")
 
-          # Output the list of inactive users.
-          if [ ${#inactive_users[@]} -gt 0 ]; then
-            echo "Inactive users detected: ${inactive_users[@]}"
-            
-            # Create a GitHub issue to alert the admin.
-            issue_title="Dormant User Alert: Inactive Users Detected"
-            issue_body="The following users have been detected as inactive (no activity in the last 60 days):\n\n$(printf ' - %s\n' "${inactive_users[@]}")"
-            
-            echo "Creating an issue to alert the admin..."
-            create_issue_response=$(curl -s -L \
-              -X POST \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer $TOKEN" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues" \
-              -d "{\"title\": \"${issue_title}\", \"body\": \"${issue_body//\"/\\\"}\"}")
-
-            echo "Issue creation response: $create_issue_response"
-          else
-            echo "All users appear active. No issue created."
-          fi
+          echo "Activity check complete. Final findings:"
+          cat "$OUTPUT_FILE"
