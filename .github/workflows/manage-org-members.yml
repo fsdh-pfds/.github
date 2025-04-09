@@ -3,10 +3,6 @@ name: Manage Organization Members
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-    paths:
-      - org-membership/members.json
 
 permissions: read-all
 
