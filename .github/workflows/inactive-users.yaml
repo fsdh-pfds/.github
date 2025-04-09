@@ -44,25 +44,22 @@ jobs:
             exit 1
           fi
 
-          # Iterate over each member in the JSON file.
+          # Iterate over each member in the JSON file
           while IFS= read -r member; do
             username=$(echo "$member" | jq -r '.username')
             echo "Checking activity for $username"
 
-            # Fetch the user's public events, paginating (100 per page) and filtering
-            # for events where the event's org is fsdh-pfds and the event is within the specified time window.
+            # Fetch all events with pagination, filter for the first match in the 90-day window
             latest_event=$(gh api /users/"$username"/events?per_page=100 \
               --paginate --jq '[.[] | select(.created_at >= env.SINCE and (.org.login == "fsdh-pfds"))][0]' || echo "")
 
             if [ -z "$latest_event" ] || [ "$latest_event" = "null" ]; then
               echo "User $username is stale" | tee -a "$OUTPUT_FILE"
             else
-              # Extract event type and created_at date from the latest event.
+              # Extract event type and date from the latest event
               event_type=$(echo "$latest_event" | jq -r '.type')
               event_date=$(echo "$latest_event" | jq -r '.created_at')
-              # Convert the UTC timestamp to Eastern Time (America/New_York)
-              converted_event_date=$(TZ="America/New_York" date -d "$event_date" '+%Y-%m-%d %H:%M:%S %Z')
-              echo "User $username is active: Last event '$event_type' at $converted_event_date" | tee -a "$OUTPUT_FILE"
+              echo "User $username is active: Last event ($event_type) at: $event_date" | tee -a "$OUTPUT_FILE"
             fi
           done < <(jq -c '.members[]' "$MEMBERS_FILE")
 
