@@ -49,17 +49,16 @@ jobs:
             username=$(echo "$member" | jq -r '.username')
             echo "Checking activity for $username"
 
-            # Fetch events, filter, sort, and pick the latest one
-            latest_event=$(gh api -H "Accept: application/vnd.github+json" \
-              /users/"$username"/events?per_page=100 --paginate \
-              --jq '[.[] | select(.created_at >= env.SINCE and (.org.login == "fsdh-pfds"))] | sort_by(.created_at) | reverse | .[0]' || echo "")
+            # Fetch all events, filter for the first match in the 90-day window
+            latest_event=$(gh api /users/"$username"/events?per_page=100 \
+              --paginate --jq '[.[] | select(.created_at >= env.SINCE and (.org.login == "fsdh-pfds"))][0]' || echo "")
 
             if [ -z "$latest_event" ] || [ "$latest_event" = "null" ]; then
               echo "User $username is stale" | tee -a "$OUTPUT_FILE"
             else
-              # Extract type and date from the single event, ensuring one value each
-              event_type=$(echo "$latest_event" | jq -r '.type // "Unknown"')
-              event_date=$(echo "$latest_event" | jq -r '.created_at // "Unknown"')
+              # Extract event type and date from the single latest event
+              event_type=$(echo "$latest_event" | jq -r '.type')
+              event_date=$(echo "$latest_event" | jq -r '.created_at')
               echo "User $username is active: Last event ($event_type) at: $event_date" | tee -a "$OUTPUT_FILE"
             fi
           done < <(jq -c '.members[]' "$MEMBERS_FILE")
