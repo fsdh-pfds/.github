@@ -2,7 +2,7 @@ name: Manage Organization Members
 
 on:
   workflow_dispatch:
-  push: {}
+  push:
     paths:
       - org-membership/members.json
       - org-membership/inactive_users
