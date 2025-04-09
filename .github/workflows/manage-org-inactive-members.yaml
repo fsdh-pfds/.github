@@ -87,5 +87,5 @@ jobs:
             git commit -m "Update inactive users report"
             git push
           else
-            echo "No changes to commit."
+            echo "No changes to commit. "
           fi
