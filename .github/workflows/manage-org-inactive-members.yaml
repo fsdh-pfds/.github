@@ -1,4 +1,4 @@
-name: Check Member Activity
+name: Manage Inactive Members
 
 on:
   schedule:
