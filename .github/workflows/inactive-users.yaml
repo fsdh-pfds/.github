@@ -30,7 +30,7 @@ jobs:
         run: |
           echo "Starting member activity check..."
 
-          # Calculate the date 30 days ago (YYYY-MM-DD format)
+          # Calculate the date 90 days ago (YYYY-MM-DD format)
           SINCE=$(date -d "90 days ago" +%Y-%m-%d)
           echo "Filtering for events on or after: $SINCE"
 
@@ -44,13 +44,13 @@ jobs:
             exit 1
           fi
 
-          # Iterate over each member in the JSON file
+          # Iterate over each member in the JSON file.
           while IFS= read -r member; do
             username=$(echo "$member" | jq -r '.username')
             echo "Checking activity for $username"
 
             # Fetch the user's public events, paginating (100 per page) and filtering
-            # for events where the event's org is fsdh-pfds and the event is within 30 days.
+            # for events where the event's org is fsdh-pfds and the event is within the specified time window.
             latest_event=$(gh api /users/"$username"/events?per_page=100 \
               --paginate --jq '[.[] | select(.created_at >= env.SINCE and (.org.login == "fsdh-pfds"))][0]' || echo "")
 
@@ -60,9 +60,11 @@ jobs:
               # Extract event type and created_at date from the latest event.
               event_type=$(echo "$latest_event" | jq -r '.type')
               event_date=$(echo "$latest_event" | jq -r '.created_at')
-              echo "User $username is active: Last event(s) at: \n $event_date" | tee -a "$OUTPUT_FILE"
+              # Convert the UTC timestamp to Eastern Time (America/New_York)
+              converted_event_date=$(TZ="America/New_York" date -d "$event_date" '+%Y-%m-%d %H:%M:%S %Z')
+              echo "User $username is active: Last event '$event_type' at $converted_event_date" | tee -a "$OUTPUT_FILE"
             fi
           done < <(jq -c '.members[]' "$MEMBERS_FILE")
 
           echo "Activity check complete. Final findings:"
-          # cat "$OUTPUT_FILE"
+          cat "$OUTPUT_FILE"
