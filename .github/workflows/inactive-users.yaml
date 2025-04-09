@@ -62,7 +62,7 @@ jobs:
               echo "User $username is stale" | tee -a "$OUTPUT_FILE"
             else
               # Extract event type and date from the single latest event
-              event_type=$(echo "$latest_event" | jq -r '.type')
+              event_type=$(echo "$latest_event" | jq -r '.event')
               event_date=$(echo "$latest_event" | jq -r '.created_at')
               echo "User $username is active: Last event ($event_type) at: $event_date" | tee -a "$OUTPUT_FILE"
             fi
