@@ -31,7 +31,7 @@ jobs:
           echo "Starting member activity check..."
 
           # Calculate the date 30 days ago (YYYY-MM-DD format)
-          SINCE=$(date -d "30 days ago" +%Y-%m-%d)
+          SINCE=$(date -d "90 days ago" +%Y-%m-%d)
           echo "Filtering for events on or after: $SINCE"
 
           # Prepare the output file for reporting
@@ -55,14 +55,14 @@ jobs:
               --paginate --jq '[.[] | select(.created_at >= env.SINCE and (.org.login == "fsdh-pfds"))][0]' || echo "")
 
             if [ -z "$latest_event" ] || [ "$latest_event" = "null" ]; then
-              echo "User $username is stale (no fsdh-pfds event found in the last 30 days)." | tee -a "$OUTPUT_FILE"
+              echo "User $username is stale" | tee -a "$OUTPUT_FILE"
             else
               # Extract event type and created_at date from the latest event.
               event_type=$(echo "$latest_event" | jq -r '.type')
               event_date=$(echo "$latest_event" | jq -r '.created_at')
-              echo "User $username is active: Last event '$event_type' at $event_date" | tee -a "$OUTPUT_FILE"
+              echo "User $username is active: Last event at $event_date" | tee -a "$OUTPUT_FILE"
             fi
           done < <(jq -c '.members[]' "$MEMBERS_FILE")
 
           echo "Activity check complete. Final findings:"
-          cat "$OUTPUT_FILE"
+          # cat "$OUTPUT_FILE"
