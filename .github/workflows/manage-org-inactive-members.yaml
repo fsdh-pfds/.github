@@ -1,0 +1,90 @@
+name: Manage Inactive Members
+
+on:
+  schedule:
+    - cron: "0 1 * * *" # Runs daily at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  check-activity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create App token
+        id: create_token
+        uses: fsdh-pfds/.github/.github/actions/create-app-token@main
+        with:
+          app-id: ${{ vars.FSDH_ORG_EVENT_WATCHER_APP_ID }}
+          private-key: ${{ secrets.FSDH_ORG_EVENT_WATCHER_APP_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.create_token.outputs.token }}
+          ref: ${{ github.ref_name }}
+
+      - name: Set up GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
+
+      - name: Check Members Activity & Generate Inactive Report
+        run: |
+          # Define the lookback period in days
+          LOOKBACK_DAYS=30
+          SINCE=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d)
+          echo "Filtering for events on or after: $SINCE"
+
+          # Define the file for inactive users report inside the org-membership folder
+          INACTIVE_FILE="org-membership/inactive_users.json"
+          # Ensure the org-membership folder exists
+          mkdir -p org-membership
+          # Initialize the file with an empty JSON array
+          echo "[]" > "$INACTIVE_FILE"
+
+          # Array to hold inactive users
+          inactive_users=()
+
+          MEMBERS_FILE="org-membership/members.json"
+          if [ ! -f "$MEMBERS_FILE" ]; then
+            echo "Error: $MEMBERS_FILE not found."
+            exit 1
+          fi
+
+          # Loop through each member from the members file
+          while IFS= read -r member; do
+            username=$(echo "$member" | jq -r '.username')
+            echo "Checking activity for $username"
+
+            # Fetch events; get the first event in the 90-day window for the specified org
+            latest_event=$(gh api /users/"$username"/events?per_page=30 --paginate | \
+              jq '[.[] | select(.created_at >= env.SINCE and (.org.login == "fsdh-pfds"))][0]' || echo "")
+
+            if [ -z "$latest_event" ] || [ "$latest_event" = "null" ]; then
+              echo "User $username is inactive."
+              inactive_users+=("$username")
+            else
+              echo "User $username is active."
+            fi
+          done < <(jq -c '.members[]' "$MEMBERS_FILE")
+
+          # Convert the inactive users array to a JSON array
+          json_array=$(printf '%s\n' "${inactive_users[@]}" | jq -R . | jq -s .)
+          echo "$json_array" > "$INACTIVE_FILE"
+          echo "Inactive users JSON file created: $INACTIVE_FILE"
+
+          # Stage the updated file for commit
+          git add "$INACTIVE_FILE"
+
+      - name: Commit and Push Changes
+        env:
+          GITHUB_TOKEN: ${{ steps.create_token.outputs.token }}
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config --global user.name "FSDH Org Event Watcher App"
+            git config --global user.email "<${{ vars.FSDH_ORG_EVENT_WATCHER_APP_ID }}+FSDH Org Event Watcher App[bot]@users.noreply.github.com>"
+            git commit -m "Update inactive users report"
+            git push
+          else
+            echo "No changes to commit. "
+          fi
