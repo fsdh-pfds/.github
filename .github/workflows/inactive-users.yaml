@@ -63,7 +63,8 @@ jobs:
             else
               # Extract event type and date from the single latest event
               event_type=$(echo "$latest_event" | jq -r '.event')
-              event_date=$(echo "$latest_event" | jq -r '.created_at')
+              #event_date=$(echo "$latest_event" | jq -r '.created_at')
+              event_date=$(echo "$latest_event" | jq -r '.created_at' | date -d "$(cat) -5 hours" +"%Y-%m-%d %H:%M:%S")
               echo "User $username is active: Last event ($event_type) at: $event_date" | tee -a "$OUTPUT_FILE"
             fi
           done < <(jq -c '.members[]' "$MEMBERS_FILE")
