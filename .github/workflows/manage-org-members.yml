@@ -3,6 +3,10 @@ name: Manage Organization Members
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
+    paths:
+      - org-membership/members.json
 
 permissions: read-all
 
@@ -114,17 +118,24 @@ jobs:
                 -d "{\"email\": \"$email\", \"role\": \"$desired_role\"}")
               echo "Invite response for $login: $invite_response"
             elif [[ "$http_code" == "200" ]]; then
+              # Map "direct_member" from JSON to "member" for API comparison
+              if [[ "$desired_role" == "direct_member" ]]; then
+                mapped_role="member"
+              else
+                mapped_role="$desired_role"
+              fi
+
               current_role=$(echo "$membership" | jq -r '.role')
-              if [[ "$current_role" != "$desired_role" ]]; then
-                echo "User $login is already a member but has role $current_role. Updating role to $desired_role..."
+              if [[ "$current_role" != "$mapped_role" ]]; then
+                echo "User $login is already a member but has role $current_role. Updating role to $mapped_role..."
                 update_response=$(curl -sL -X PUT \
                   -H "Authorization: Bearer $TOKEN" \
                   -H "Accept: application/vnd.github+json" \
                   "https://api.github.com/orgs/$ORG/memberships/$login" \
-                  -d "{\"role\": \"$desired_role\"}")
+                  -d "{\"role\": \"$mapped_role\"}")
                 echo "Role update response for $login: $update_response"
               else
-                echo "User $login is already a member with the desired role: $desired_role."
+                echo "User $login is already a member with the desired role: $mapped_role."
               fi
             else
               echo "Unexpected status $http_code for membership check of user $login: $membership"

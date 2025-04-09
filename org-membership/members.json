@@ -2,13 +2,13 @@
   "members": [
     {
       "username": "fsdh-breakglass-01",
-      "email": "",
-      "role": "direct_member"
+      "email": "datasolutions-solutiondedonnees@ssc-spc.gc.ca",
+      "role": "admin"
     },
     {
       "username": "fsdh-breakglass-02",
-      "email": "",
-      "role": "direct_member"
+      "email": "datasolutions-solutiondedonnees@ssc-spc.gc.ca",
+      "role": "admin"
     },
     {
       "username": "KingBain",
