@@ -5,7 +5,12 @@
 |--|--|
 | AC-1 |[![Manage Org Members](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-members.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-members.yml)  |
 |AC-2|[![Manage Organization Teams](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-teams.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-teams.yml)[![JIT Org Admin](https://github.com/fsdh-pfds/.github/actions/workflows/org-admin-promotion.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/org-admin-promotion.yml)[![JIT Org Admin Cleanup](https://github.com/fsdh-pfds/.github/actions/workflows/org-admin-demotion.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/org-admin-demotion.yml)[![Manage Inactive Members](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-inactive-members.yaml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-inactive-members.yaml)|
-|AC-3, AC-4|![Static Badge](https://img.shields.io/badge/Github-Inherited-green?style=flat)|
+|AC-2(1), AC-3, AC-3(7), AC-4, AC-6(10), AC-7, AC-8, AC-20(3) |![Static Badge](https://img.shields.io/badge/GitHub-Inherited-brightgreen?style=flat&logo=github&logoColor=white&labelColor=24292e)|
+|AU-1, AU-2, AU-3, AU-4, AU-4(1), AU-8, AU-12|![Static Badge](https://img.shields.io/badge/GitHub-Inherited-brightgreen?style=flat&logo=github&logoColor=white&labelColor=24292e)|
+|CA-1, CA-3, CAZ-(3)|![Static Badge](https://img.shields.io/badge/GitHub-Inherited-brightgreen?style=flat&logo=github&logoColor=white&labelColor=24292e)|
+|CM-7|![Static Badge](https://img.shields.io/badge/GitHub-Inherited-brightgreen?style=flat&logo=github&logoColor=white&labelColor=24292e)|
+
+![Static Badge](https://img.shields.io/badge/GitHub-Inherited-brightgreen?style=flat&logo=github&logoColor=white&labelColor=24292e)
 
 ## Repo Health Dashboard 
 
