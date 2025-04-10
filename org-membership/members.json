@@ -4,14 +4,14 @@
       "username": "fsdh-breakglass-01",
       "email": "datasolutions-solutiondedonnees@ssc-spc.gc.ca",
       "role": "admin",
-      "status": "inactive",
+      "status": "active",
       "removable": "no"
     },
     {
       "username": "fsdh-breakglass-02",
       "email": "datasolutions-solutiondedonnees@ssc-spc.gc.ca",
       "role": "admin",
-      "status": "inactive",
+      "status": "active",
       "removable": "no"
     },
     {
