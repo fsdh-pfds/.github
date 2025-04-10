@@ -62,19 +62,18 @@ jobs:
         run: |
           ORG="${{ github.repository_owner }}"
           TOKEN="${{ steps.create_token.outputs.token }}"
-
-          # Define allowed email domains
+          inactive_file="org-membership/inactive.json"
           allowed_domains=("ssc-spc.gc.ca" "ssc.gc.ca")
-
-          # Path to the members JSON file
           ORG_MEMBERSHIP_FILE="org-membership/members.json"
+
+
           if [[ ! -f "$ORG_MEMBERSHIP_FILE" ]]; then
             echo "Error: $ORG_MEMBERSHIP_FILE not found."
             exit 1
           fi
 
           # Load stale (inactive) users from inactive.json if it exists
-          inactive_file="inactive.json"
+
           if [[ -f "$inactive_file" ]]; then
             readarray -t inactive_users < <(jq -r '.[]' "$inactive_file")
             echo "Found inactive users: ${inactive_users[*]}"
