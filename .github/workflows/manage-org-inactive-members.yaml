@@ -60,8 +60,10 @@ jobs:
             echo "Checking activity for $username"
             
             # Fetch events for the user; filter for events on or after SINCE and for the organization specified by $ORG.
-            latest_event=$(gh api /users/"$username"/events?per_page=30 --paginate | \
-              jq '[.[] | select(.created_at >= env.SINCE and (.org.login == env.ORG))][0]' || echo "")
+            latest_event=$(gh api /users/"$username"/events?per_page=100 --paginate | \
+              jq '[.[] | select(.created_at >= env.SINCE and (.org.login == env.ORG)) | {login: .actor.login, repo: .repo.name, org: (.org.login // "n/a"), event: .type, created_at: .created_at}] | sort_by(.created_at) | reverse | .[0]' || echo "")
+
+
             
             if [ -z "$latest_event" ] || [ "$latest_event" = "null" ]; then
               echo "User $username is inactive."
