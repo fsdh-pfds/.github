@@ -62,42 +62,29 @@ jobs:
         run: |
           ORG="${{ github.repository_owner }}"
           TOKEN="${{ steps.create_token.outputs.token }}"
-          inactive_file="org-membership/inactive.json"
+
+          # Define allowed email domains
           allowed_domains=("ssc-spc.gc.ca" "ssc.gc.ca")
+
+          # Path to members JSON file
           ORG_MEMBERSHIP_FILE="org-membership/members.json"
-
-
           if [[ ! -f "$ORG_MEMBERSHIP_FILE" ]]; then
             echo "Error: $ORG_MEMBERSHIP_FILE not found."
             exit 1
           fi
 
-          # Load stale (inactive) users from inactive.json if it exists
-
-          if [[ -f "$inactive_file" ]]; then
-            readarray -t inactive_users < <(jq -r '.[]' "$inactive_file")
-            echo "Found inactive users: ${inactive_users[*]}"
-          else
-            echo "No inactive.json file found; proceeding without stale user list."
-            inactive_users=()
-          fi
-
-          # Process each member from the JSON file
+          # Process each member from members.json
+          # Only process those with status "active"
           jq -c '.members[]' "$ORG_MEMBERSHIP_FILE" | while read -r member; do
             username=$(echo "$member" | jq -r '.username')
             email=$(echo "$member" | jq -r '.email')
             desired_role=$(echo "$member" | jq -r '.role')
+            status=$(echo "$member" | jq -r '.status')
+            removable=$(echo "$member" | jq -r '.removable')
             
-            # Check if the user is in the inactive list; if so, skip invitation/update.
-            skip=false
-            for inactive in "${inactive_users[@]}"; do
-              if [[ "$username" == "$inactive" ]]; then
-                echo "Skipping user $username because they are marked as inactive."
-                skip=true
-                break
-              fi
-            done
-            if [[ "$skip" == true ]]; then
+            # Skip processing if status is inactive
+            if [[ "$status" != "active" ]]; then
+              echo "Skipping user $username because status is inactive."
               continue
             fi
             
@@ -116,7 +103,7 @@ jobs:
             
             # Use the JSON username as the login
             login="$username"
-            echo "Processing member: $login with email $email and desired role $desired_role"
+            echo "Processing member: $login with email $email, desired role $desired_role, status $status, removable $removable"
             
             # Check membership status in the organization
             membership_response=$(curl -sL -w "\n%{http_code}" \
@@ -159,24 +146,25 @@ jobs:
           done
 
           # ---- Removal of Extra Members ----
-          # Build an allowed members list based on members.json but exclude inactive users.
+          # Build the allowed list from members.json using the following criteria:
+          # - Users with status "active"
+          # - OR users that are non-removable (i.e. removable is "no") regardless of status
 
-          # Load all usernames from members.json into an array.
-          readarray -t json_usernames < <(jq -r '.members[].username' "$ORG_MEMBERSHIP_FILE")
           allowed=()
-          for username in "${json_usernames[@]}"; do
-            skip=false
-            for inactive in "${inactive_users[@]}"; do
-              if [[ "$username" == "$inactive" ]]; then
-                skip=true
-                break
-              fi
-            done
-            if [[ "$skip" == false ]]; then
-              allowed+=("$username")
+          jq -c '.members[]' "$ORG_MEMBERSHIP_FILE" | while read -r member; do
+            username=$(echo "$member" | jq -r '.username')
+            status=$(echo "$member" | jq -r '.status')
+            removable=$(echo "$member" | jq -r '.removable')
+            
+            # Include user if they are active OR they are non-removable
+            if [[ "$status" == "active" || "$removable" == "no" ]]; then
+              echo "$username"
             fi
-          done
-          echo "Allowed active users: ${allowed[*]}"
+          done > /tmp/allowed_users.txt
+
+          # Read allowed usernames into an array
+          readarray -t allowed_users < /tmp/allowed_users.txt
+          echo "Allowed users for retention: ${allowed_users[*]}"
 
           # Fetch current organization members from GitHub.
           echo "Fetching current organization members..."
@@ -187,17 +175,17 @@ jobs:
           # Load organization member usernames into an array.
           readarray -t org_member_usernames < <(echo "$org_members" | jq -r '.[] | .login')
 
-          # For each org member, remove them if they are not allowed.
+          # For each org member, if they are not in the allowed list, remove them.
           for org_member in "${org_member_usernames[@]}"; do
             found=false
-            for allowed_member in "${allowed[@]}"; do
+            for allowed_member in "${allowed_users[@]}"; do
               if [[ "$org_member" == "$allowed_member" ]]; then
                 found=true
                 break
               fi
             done
             if [[ "$found" == false ]]; then
-              echo "Removing member $org_member because they are either stale or not listed in active members."
+              echo "Removing member $org_member because they are either inactive or not listed in active members."
               remove_response=$(curl -sL -X DELETE \
                 -H "Authorization: Bearer $TOKEN" \
                 -H "Accept: application/vnd.github+json" \
