@@ -66,19 +66,41 @@ jobs:
           # Define allowed email domains
           allowed_domains=("ssc-spc.gc.ca" "ssc.gc.ca")
 
-          # Path to members JSON file
+          # Path to the members JSON file
           ORG_MEMBERSHIP_FILE="org-membership/members.json"
-
           if [[ ! -f "$ORG_MEMBERSHIP_FILE" ]]; then
             echo "Error: $ORG_MEMBERSHIP_FILE not found."
             exit 1
           fi
 
-          # Process each member in members.json
+          # Load stale (inactive) users from inactive.json if it exists
+          inactive_file="inactive.json"
+          if [[ -f "$inactive_file" ]]; then
+            readarray -t inactive_users < <(jq -r '.[]' "$inactive_file")
+            echo "Found inactive users: ${inactive_users[*]}"
+          else
+            echo "No inactive.json file found; proceeding without stale user list."
+            inactive_users=()
+          fi
+
+          # Process each member from the JSON file
           jq -c '.members[]' "$ORG_MEMBERSHIP_FILE" | while read -r member; do
             username=$(echo "$member" | jq -r '.username')
             email=$(echo "$member" | jq -r '.email')
             desired_role=$(echo "$member" | jq -r '.role')
+            
+            # Check if the user is in the inactive list; if so, skip invitation/update.
+            skip=false
+            for inactive in "${inactive_users[@]}"; do
+              if [[ "$username" == "$inactive" ]]; then
+                echo "Skipping user $username because they are marked as inactive."
+                skip=true
+                break
+              fi
+            done
+            if [[ "$skip" == true ]]; then
+              continue
+            fi
             
             # Validate email domain
             valid_email=false
@@ -93,7 +115,7 @@ jobs:
               continue
             fi
             
-            # Using username from JSON as the login
+            # Use the JSON username as the login
             login="$username"
             echo "Processing member: $login with email $email and desired role $desired_role"
             
@@ -114,13 +136,12 @@ jobs:
                 -d "{\"email\": \"$email\", \"role\": \"$desired_role\"}")
               echo "Invite response for $login: $invite_response"
             elif [[ "$http_code" == "200" ]]; then
-              # Map "direct_member" from JSON to "member" for API comparison
+              # Map "direct_member" from JSON to "member" for API comparison.
               if [[ "$desired_role" == "direct_member" ]]; then
                 mapped_role="member"
               else
                 mapped_role="$desired_role"
               fi
-
               current_role=$(echo "$membership" | jq -r '.role')
               if [[ "$current_role" != "$mapped_role" ]]; then
                 echo "User $login is already a member but has role $current_role. Updating role to $mapped_role..."
@@ -138,29 +159,46 @@ jobs:
             fi
           done
 
-          # Remove organization members not listed in members.json using Bash arrays
+          # ---- Removal of Extra Members ----
+          # Build an allowed members list based on members.json but exclude inactive users.
+
+          # Load all usernames from members.json into an array.
+          readarray -t json_usernames < <(jq -r '.members[].username' "$ORG_MEMBERSHIP_FILE")
+          allowed=()
+          for username in "${json_usernames[@]}"; do
+            skip=false
+            for inactive in "${inactive_users[@]}"; do
+              if [[ "$username" == "$inactive" ]]; then
+                skip=true
+                break
+              fi
+            done
+            if [[ "$skip" == false ]]; then
+              allowed+=("$username")
+            fi
+          done
+          echo "Allowed active users: ${allowed[*]}"
+
+          # Fetch current organization members from GitHub.
           echo "Fetching current organization members..."
           org_members=$(curl -sL -H "Authorization: Bearer $TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/orgs/$ORG/members?per_page=100")
 
-          # Load organization member usernames into an array
+          # Load organization member usernames into an array.
           readarray -t org_member_usernames < <(echo "$org_members" | jq -r '.[] | .login')
 
-          # Load JSON member usernames into an array
-          readarray -t json_member_usernames < <(jq -r '.members[].username' "$ORG_MEMBERSHIP_FILE")
-
-          # Iterate over each organization member; remove if not found in JSON array
+          # For each org member, remove them if they are not allowed.
           for org_member in "${org_member_usernames[@]}"; do
             found=false
-            for json_username in "${json_member_usernames[@]}"; do
-              if [[ "$org_member" == "$json_username" ]]; then
+            for allowed_member in "${allowed[@]}"; do
+              if [[ "$org_member" == "$allowed_member" ]]; then
                 found=true
                 break
               fi
             done
             if [[ "$found" == false ]]; then
-              echo "Removing member $org_member because they are not listed in members.json."
+              echo "Removing member $org_member because they are either stale or not listed in active members."
               remove_response=$(curl -sL -X DELETE \
                 -H "Authorization: Bearer $TOKEN" \
                 -H "Accept: application/vnd.github+json" \
