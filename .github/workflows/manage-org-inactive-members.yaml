@@ -2,8 +2,10 @@ name: Manage Inactive Members
 
 on:
   schedule:
-    - cron: "0 1 * * *" # Runs daily at midnight UTC
+    - cron: "0 1 * * *" # Runs daily at 1:00 UTC
   workflow_dispatch:
+
+permissions: read-all
 
 jobs:
   check-activity:
@@ -28,38 +30,41 @@ jobs:
         run: |
           gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
 
-      - name: Check Members Activity & Generate Inactive Report
+      - name: Check Members Activity & Update Inactive Status
         run: |
           # Define the lookback period in days
           LOOKBACK_DAYS=30
+          ORG="${{ github.repository_owner }}"
+          MEMBERS_FILE="org-membership/members.json"
+
           SINCE=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d)
           echo "Filtering for events on or after: $SINCE"
 
-          # Define the file for inactive users report inside the org-membership folder
-          INACTIVE_FILE="org-membership/inactive_users.json"
-          # Ensure the org-membership folder exists
-          mkdir -p org-membership
-          # Initialize the file with an empty JSON array
-          echo "[]" > "$INACTIVE_FILE"
-
-          # Array to hold inactive users
-          inactive_users=()
-
-          MEMBERS_FILE="org-membership/members.json"
           if [ ! -f "$MEMBERS_FILE" ]; then
             echo "Error: $MEMBERS_FILE not found."
             exit 1
           fi
 
-          # Loop through each member from the members file
+          # Initialize an array for usernames with no recent activity
+          inactive_users=()
+
+          # Loop through each member in members.json
           while IFS= read -r member; do
             username=$(echo "$member" | jq -r '.username')
+            removable=$(echo "$member" | jq -r '.removable')
+            
+            # Skip scanning if "removable" is set to "no"
+            if [[ "$removable" == "no" ]]; then
+              echo "Skipping activity scan for $username because removable is set to no."
+              continue
+            fi
+
             echo "Checking activity for $username"
-
-            # Fetch events; get the first event in the 90-day window for the specified org
-            latest_event=$(gh api /users/"$username"/events?per_page=30 --paginate | \
-              jq '[.[] | select(.created_at >= env.SINCE and (.org.login == "fsdh-pfds"))][0]' || echo "")
-
+            
+            # Fetch events for the user; filter for events on or after SINCE and for the organization specified by $ORG.
+            latest_event=$(gh api /users/"$username"/events?per_page=100 --paginate | \
+              jq --arg org "$ORG" '[.[] | select(.created_at >= env.SINCE and (.org.login == $org)) | {login: .actor.login, repo: .repo.name, org: (.org.login // "n/a"), event: .type, created_at: .created_at}] | sort_by(.created_at) | reverse | .[0]' || echo "")
+            
             if [ -z "$latest_event" ] || [ "$latest_event" = "null" ]; then
               echo "User $username is inactive."
               inactive_users+=("$username")
@@ -68,13 +73,27 @@ jobs:
             fi
           done < <(jq -c '.members[]' "$MEMBERS_FILE")
 
-          # Convert the inactive users array to a JSON array
-          json_array=$(printf '%s\n' "${inactive_users[@]}" | jq -R . | jq -s .)
-          echo "$json_array" > "$INACTIVE_FILE"
-          echo "Inactive users JSON file created: $INACTIVE_FILE"
+          # Convert inactive_users array to a JSON array string
+          inactive_json=$(printf '%s\n' "${inactive_users[@]}" | jq -R . | jq -s .)
+          echo "Inactive users: $inactive_json"
+
+          # Update members.json: For each member, if the username is in the inactive array then set status to "inactive"; otherwise "active".
+          updated_json=$(jq --argjson inactive "$inactive_json" '
+            .members |= map(
+              if (.username as $uname | $inactive | index($uname)) then
+                .status = "inactive"
+              else
+                .status = "active"
+              end
+            )
+          ' "$MEMBERS_FILE")
+
+          # Overwrite the members.json file with the updated JSON content
+          echo "$updated_json" > "$MEMBERS_FILE"
+          echo "Updated $MEMBERS_FILE with new inactive statuses."
 
           # Stage the updated file for commit
-          git add "$INACTIVE_FILE"
+          git add "$MEMBERS_FILE"
 
       - name: Commit and Push Changes
         env:
@@ -83,8 +102,8 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             git config --global user.name "FSDH Org Event Watcher App"
             git config --global user.email "<${{ vars.FSDH_ORG_EVENT_WATCHER_APP_ID }}+FSDH Org Event Watcher App[bot]@users.noreply.github.com>"
-            git commit -m "Update inactive users report"
+            git commit -m "Update members.json inactive statuses"
             git push
           else
-            echo "No changes to commit. "
+            echo "No changes to commit."
           fi

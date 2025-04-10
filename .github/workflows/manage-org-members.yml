@@ -1,13 +1,14 @@
----
 name: Manage Organization Members
 
 on:
+  schedule:
+    - cron: "0 0 * * *" # Runs daily at 1:00 UTC
   workflow_dispatch:
   push:
     branches:
       - main
     paths:
-      - org-membership/members.json
+      - "org-membership/members.json"
 
 permissions: read-all
 
@@ -24,7 +25,7 @@ jobs:
           private-key: ${{ secrets.FSDH_TEAM_ADMIN_APP_KEY }}
 
       - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Clear Failed Invitations
         run: |
@@ -41,14 +42,12 @@ jobs:
             email=$(echo "$invite" | jq -r '.email')
             failed_reason=$(echo "$invite" | jq -r '.failed_reason')
 
-            # Log the failure reason
             if [[ -n "$failed_reason" ]]; then
               echo "Invitation for $email failed due to: $failed_reason"
             else
               echo "Invitation for $email failed, but no reason provided."
             fi
 
-            # Cancel the invitation
             cancel_response=$(curl -L -X DELETE \
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer ${{ steps.create_token.outputs.token }}" \
@@ -67,69 +66,130 @@ jobs:
 
       - name: Set membership
         run: |
-          org_membership="./org-membership/members.json"
+          ORG="${{ github.repository_owner }}"
+          TOKEN="${{ steps.create_token.outputs.token }}"
 
-          if [[ ! -f "$org_membership" ]]; then
-            echo "Error: members.json file not found at $org_membership"
+          # Define allowed email domains
+          allowed_domains=("ssc-spc.gc.ca" "ssc.gc.ca")
+
+          # Path to members JSON file
+          ORG_MEMBERSHIP_FILE="org-membership/members.json"
+          if [[ ! -f "$ORG_MEMBERSHIP_FILE" ]]; then
+            echo "Error: $ORG_MEMBERSHIP_FILE not found."
             exit 1
           fi
 
-          # Read JSON file and set membership
-          members=$(jq -c '.members[]' "$org_membership") || {
-            echo "Error: Failed to parse $org_membership"
-            exit 1
-          }
-
-          failed_invites=false
-
-          for member in $members; do
+          # Process each member from members.json
+          # Only process those with status "active"
+          jq -c '.members[]' "$ORG_MEMBERSHIP_FILE" | while read -r member; do
+            username=$(echo "$member" | jq -r '.username')
             email=$(echo "$member" | jq -r '.email')
-            role=$(echo "$member" | jq -r '.role')
-
-            # Echo each user being processed
-            echo "Processing user: $email with role: $role"
-
-            retry_count=0
-            max_retries=3
-
-            while [[ $retry_count -lt $max_retries ]]; do
-              # Invite member to the organization and capture response
-              response=$(curl -L \
-                -X POST \
-                -H "Accept: application/vnd.github+json" \
-                -H "Authorization: Bearer ${{ steps.create_token.outputs.token }}" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                "https://api.github.com/orgs/${{ github.repository_owner }}/invitations" \
-                -d '{"email":"'"$email"'","role":"'"$role"'"}' \
-                -w "\n%{http_code}" -s)
-
-              # Split response body and HTTP status code
-              http_body=$(echo "$response" | sed '$ d')
-              http_code=$(echo "$response" | tail -n1)
-
-              # Check if response contains specific error message using jq
-              error_message=$(echo "$http_body" | jq -r '.errors[0].message // empty')
-
-              if [[ "$http_code" == "201" || "$http_code" == "200" ]]; then
-                echo "User $email invited successfully."
+            desired_role=$(echo "$member" | jq -r '.role')
+            status=$(echo "$member" | jq -r '.status')
+            removable=$(echo "$member" | jq -r '.removable')
+            
+            # Skip processing if status is inactive
+            if [[ "$status" != "active" ]]; then
+              echo "Skipping user $username because status is inactive."
+              continue
+            fi
+            
+            # Validate email domain
+            valid_email=false
+            for domain in "${allowed_domains[@]}"; do
+              if [[ "$email" == *"@$domain" ]]; then
+                valid_email=true
                 break
-              elif [[ "$http_code" == "422" && "$error_message" == "A user with this email address is already a part of this organization" ]]; then
-                echo "User $email is already a member."
-                break
-              else
-                echo "Retrying for user $email. Attempt #$((retry_count + 1))"
-                retry_count=$((retry_count + 1))
-                sleep $((retry_count * 2))
-              fi
-
-              if [[ $retry_count -eq $max_retries ]]; then
-                echo "Failed to invite $email after $max_retries attempts. Response: $http_body"
-                failed_invites=true
               fi
             done
+            if [[ "$valid_email" != true ]]; then
+              echo "Skipping user $username with email $email – domain not allowed."
+              continue
+            fi
+            
+            # Use the JSON username as the login
+            login="$username"
+            echo "Processing member: $login with email $email, desired role $desired_role, status $status, removable $removable"
+            
+            # Check membership status in the organization
+            membership_response=$(curl -sL -w "\n%{http_code}" \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/orgs/$ORG/memberships/$login")
+            http_code=$(echo "$membership_response" | tail -n1)
+            membership=$(echo "$membership_response" | sed '$d')
+            
+            if [[ "$http_code" == "404" ]]; then
+              echo "User $login is not a member. Inviting..."
+              invite_response=$(curl -sL -X POST \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/orgs/$ORG/invitations" \
+                -d "{\"email\": \"$email\", \"role\": \"$desired_role\"}")
+              echo "Invite response for $login: $invite_response"
+            elif [[ "$http_code" == "200" ]]; then
+              # Map "direct_member" from JSON to "member" for API comparison.
+              if [[ "$desired_role" == "direct_member" ]]; then
+                mapped_role="member"
+              else
+                mapped_role="$desired_role"
+              fi
+              current_role=$(echo "$membership" | jq -r '.role')
+              if [[ "$current_role" != "$mapped_role" ]]; then
+                echo "User $login is already a member but has role $current_role. Updating role to $mapped_role..."
+                update_response=$(curl -sL -X PUT \
+                  -H "Authorization: Bearer $TOKEN" \
+                  -H "Accept: application/vnd.github+json" \
+                  "https://api.github.com/orgs/$ORG/memberships/$login" \
+                  -d "{\"role\": \"$mapped_role\"}")
+                echo "Role update response for $login: $update_response"
+              else
+                echo "User $login is already a member with the desired role: $mapped_role."
+              fi
+            else
+              echo "Unexpected status $http_code for membership check of user $login: $membership"
+            fi
           done
 
-          if [[ "$failed_invites" == true ]]; then
-            echo "Some invites failed. Please check the logs for details."
-            exit 1
-          fi
+          jq -c '.members[]' "$ORG_MEMBERSHIP_FILE" | while read -r member; do
+            username=$(echo "$member" | jq -r '.username')
+            status=$(echo "$member" | jq -r '.status')
+            removable=$(echo "$member" | jq -r '.removable')
+            
+            # Include user if they are active OR they are non-removable
+            if [[ "$status" == "active" || "$removable" == "no" ]]; then
+              echo "$username"
+            fi
+          done > /tmp/allowed_users.txt
+
+          # Read allowed usernames into an array
+          readarray -t allowed_users < /tmp/allowed_users.txt
+          echo "Allowed users for retention: ${allowed_users[*]}"
+
+          # Fetch current organization members from GitHub.
+          echo "Fetching current organization members..."
+          org_members=$(curl -sL -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/orgs/$ORG/members?per_page=100")
+
+          # Load organization member usernames into an array.
+          readarray -t org_member_usernames < <(echo "$org_members" | jq -r '.[] | .login')
+
+          # For each org member, if they are not in the allowed list, remove them.
+          for org_member in "${org_member_usernames[@]}"; do
+            found=false
+            for allowed_member in "${allowed_users[@]}"; do
+              if [[ "$org_member" == "$allowed_member" ]]; then
+                found=true
+                break
+              fi
+            done
+            if [[ "$found" == false ]]; then
+              echo "Removing member $org_member because they are either inactive or not listed in active members."
+              remove_response=$(curl -sL -X DELETE \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/orgs/$ORG/members/$org_member")
+              echo "Removal response for $org_member: $remove_response"
+            fi
+          done
