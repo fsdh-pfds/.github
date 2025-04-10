@@ -39,7 +39,7 @@
       "username": "skaza999",
       "email": "shiraz.kazarian@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "active",
+      "status": "inactive",
       "removable": "yes"
     },
     {
@@ -60,14 +60,14 @@
       "username": "joeHachache",
       "email": "joe.hachache@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "active",
+      "status": "inactive",
       "removable": "yes"
     },
     {
       "username": "shudsky",
       "email": "Siovan.Gecelovsky@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "active",
+      "status": "inactive",
       "removable": "yes"
     },
     {
