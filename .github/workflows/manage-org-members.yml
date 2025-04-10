@@ -1,8 +1,14 @@
 name: Manage Organization Members
 
 on:
+  schedule:
+    - cron: "0 0 * * *" # Runs daily at 1:00 UTC
   workflow_dispatch:
   push:
+    branches:
+    - main
+    paths:
+      - "org-membership/members.json"
 
 permissions: read-all
 
