@@ -151,12 +151,6 @@ jobs:
             fi
           done
 
-          # ---- Removal of Extra Members ----
-          # Build the allowed list from members.json using the following criteria:
-          # - Users with status "active"
-          # - OR users that are non-removable (i.e. removable is "no") regardless of status
-
-          allowed=()
           jq -c '.members[]' "$ORG_MEMBERSHIP_FILE" | while read -r member; do
             username=$(echo "$member" | jq -r '.username')
             status=$(echo "$member" | jq -r '.status')
