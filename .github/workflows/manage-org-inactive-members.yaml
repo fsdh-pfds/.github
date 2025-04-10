@@ -30,12 +30,12 @@ jobs:
 
       - name: Check Members Activity & Update Inactive Status
         run: |
-
+          # Define the lookback period in days
           LOOKBACK_DAYS=30
           ORG="${{ github.repository_owner }}"
           MEMBERS_FILE="org-membership/members.json"
-          SINCE=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d)
 
+          SINCE=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d)
           echo "Filtering for events on or after: $SINCE"
 
           if [ ! -f "$MEMBERS_FILE" ]; then
@@ -46,9 +46,17 @@ jobs:
           # Initialize an array for usernames with no recent activity
           inactive_users=()
 
-          # Loop through each member from members.json
+          # Loop through each member in members.json
           while IFS= read -r member; do
             username=$(echo "$member" | jq -r '.username')
+            removable=$(echo "$member" | jq -r '.removable')
+            
+            # Skip scanning if "removable" is set to "no"
+            if [[ "$removable" == "no" ]]; then
+              echo "Skipping activity scan for $username because removable is set to no."
+              continue
+            fi
+
             echo "Checking activity for $username"
             
             # Fetch events for the user; filter for events on or after SINCE and for the organization specified by $ORG.
