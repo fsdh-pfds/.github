@@ -14,7 +14,7 @@ sign()     { openssl dgst -binary -sha256 -sign /tmp/private.key; }
 
 header=$(printf '{"alg":"RS256","typ":"JWT"}' | base64url)
 now=$(date +%s); iat=$((now-60)); exp=$((now+JWT_TTL))
-payload=$(printf '{"iss":"%s","iat":%s,"exp":%s}' \ 
+payload=$(printf '{"iss":"%s","iat":%s,"exp":%s}' \
     "$GITHUB_APP_ID" "$iat" "$exp" | base64url)
 signature=$(printf '%s.%s' "$header" "$payload" | sign | base64url)
 
