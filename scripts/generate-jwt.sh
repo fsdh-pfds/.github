@@ -2,12 +2,12 @@
 set -euo pipefail
 
 # sanity checks
-[ -z "${PRIVATE_APP_KEY:-}" ]      && { echo "Error: APP_KEY not set";      exit 1; }
+[ -z "${PRIVATE_APP_KEY:-}" ]      && { echo "Error: PRIVATE_APP_KEY not set";      exit 1; }
 [ -z "${GITHUB_APP_ID:-}" ]&& { echo "Error: GITHUB_APP_ID not set"; exit 1; }
 [ -z "${JWT_TTL:-}" ]      && { echo "Error: JWT_TTL not set";      exit 1; }
 
 # decode & write the private key (assumes you injected it base64-encoded)
-echo "$PRIVATE_APP_KEY" | base64 -d > /tmp/private.key
+echo "$PRIVATE_APP_KEY" > /tmp/private.key
 
 base64url() { openssl enc -base64 -A | tr '+/' '-_' | tr -d '='; }
 sign()     { openssl dgst -binary -sha256 -sign /tmp/private.key; }
