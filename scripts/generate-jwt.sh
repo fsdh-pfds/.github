@@ -5,6 +5,14 @@ set -euo pipefail
 [ -z "${PRIVATE_APP_KEY:-}" ]      && { echo "Error: PRIVATE_APP_KEY not set";      exit 1; }
 [ -z "${GITHUB_APP_ID:-}" ]&& { echo "Error: GITHUB_APP_ID not set"; exit 1; }
 [ -z "${JWT_TTL:-}" ]      && { echo "Error: JWT_TTL not set";      exit 1; }
+[ -z "$ROOT_CA" ] && echo "Warning: ROOT_CA not set"
+
+# Optional: import custom root CA from environment variable
+if [ -n "$ROOT_CA" ]; then
+	echo "Installing custom root CA…"
+	cp /etc/ssl/certs/ca-certificates.crt /tmp/custom-root-ca.crt
+  	echo "$ROOT_CA" >>/tmp/custom-root-ca.crt
+fi
 
 # decode & write the private key (assumes you injected it base64-encoded)
 echo "$PRIVATE_APP_KEY" > /tmp/private.key
