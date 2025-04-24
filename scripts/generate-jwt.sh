@@ -7,10 +7,10 @@ set -euo pipefail
 [ -z "${JWT_TTL:-}" ]      && { echo "Error: JWT_TTL not set";      exit 1; }
 
 # decode & write the private key (assumes you injected it base64-encoded)
-echo "$PRIVATE_APP_KEY" | base64 -d > /jwt/private.key
+echo "$PRIVATE_APP_KEY" | base64 -d > /tmp/private.key
 
 base64url() { openssl enc -base64 -A | tr '+/' '-_' | tr -d '='; }
-sign()     { openssl dgst -binary -sha256 -sign /jwt/private.key; }
+sign()     { openssl dgst -binary -sha256 -sign /tmp/private.key; }
 
 header=$(printf '{"alg":"RS256","typ":"JWT"}' | base64url)
 now=$(date +%s); iat=$((now-60)); exp=$((now+JWT_TTL))
