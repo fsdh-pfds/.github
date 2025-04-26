@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # sanity checks
-[ -z "${PRIVATE_APP_KEY:-}" ]      && { echo "Error: PRIVATE_APP_KEY not set";      exit 1; }
+[ -z "${PRIVATE_APP_KEY_FILEPATH:-}" ]      && { echo "Error: PRIVATE_APP_KEY_FILEPATH not set";      exit 1; }
 [ -z "${GITHUB_APP_ID:-}" ]&& { echo "Error: GITHUB_APP_ID not set"; exit 1; }
 [ -z "${JWT_TTL:-}" ]      && { echo "Error: JWT_TTL not set";      exit 1; }
 [ -z "${ROOT_CA:-}" ] && echo "Warning: ROOT_CA not set"
@@ -14,11 +14,9 @@ if [ -n "$ROOT_CA" ]; then
   	echo "$ROOT_CA" >>/tmp/custom-root-ca.crt
 fi
 
-# decode & write the private key (assumes you injected it base64-encoded)
-echo "$PRIVATE_APP_KEY" > /tmp/private.key
 
 base64url() { openssl enc -base64 -A | tr '+/' '-_' | tr -d '='; }
-sign()     { openssl dgst -binary -sha256 -sign /tmp/private.key; }
+sign()     { openssl dgst -binary -sha256 -sign $PRIVATE_APP_KEY_FILEPATH; }
 
 header=$(printf '{"alg":"RS256","typ":"JWT"}' | base64url)
 now=$(date +%s); iat=$((now-60)); exp=$((now+JWT_TTL))
