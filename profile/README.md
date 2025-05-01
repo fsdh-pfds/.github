@@ -13,7 +13,7 @@
 
 ![Static Badge](https://img.shields.io/badge/GitHub-Inherited-brightgreen?style=flat&logo=github&logoColor=white&labelColor=24292e)
 
-## Repo Health Dashboard
+## Repository Health Dashboard
 
 ### ![.github](https://github.com/fsdh-pfds/.github)
 
