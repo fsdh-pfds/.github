@@ -5,15 +5,6 @@ set -euo pipefail
 [ -z "${PRIVATE_APP_KEY_FILEPATH:-}" ]      && { echo "Error: PRIVATE_APP_KEY_FILEPATH not set";      exit 1; }
 [ -z "${GITHUB_APP_ID:-}" ]&& { echo "Error: GITHUB_APP_ID not set"; exit 1; }
 [ -z "${JWT_TTL:-}" ]      && { echo "Error: JWT_TTL not set";      exit 1; }
-[ -z "${ROOT_CA:-}" ] && echo "Warning: ROOT_CA not set"
-
-# Optional: import custom root CA from environment variable
-if [ -n "$ROOT_CA" ]; then
-	echo "Installing custom root CA…"
-	cp /etc/ssl/certs/ca-certificates.crt /tmp/custom-root-ca.crt
-  	echo "$ROOT_CA" >>/tmp/custom-root-ca.crt
-fi
-
 
 base64url() { openssl enc -base64 -A | tr '+/' '-_' | tr -d '='; }
 sign()     { openssl dgst -binary -sha256 -sign $PRIVATE_APP_KEY_FILEPATH; }
