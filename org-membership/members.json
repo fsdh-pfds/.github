@@ -29,13 +29,6 @@
       "removable": "yes"
     },
     {
-      "username": "davidreneuw",
-      "email": "david.rene@ssc-spc.gc.ca",
-      "role": "direct_member",
-      "status": "inactive",
-      "removable": "yes"
-    },
-    {
       "username": "skaza999",
       "email": "shiraz.kazarian@ssc-spc.gc.ca",
       "role": "direct_member",
@@ -46,7 +39,7 @@
       "username": "simon-wang-gc",
       "email": "simon.wang@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "inactive",
+      "status": "active",
       "removable": "yes"
     },
     {
