@@ -33,7 +33,7 @@ jobs:
       - name: Check Members Activity & Update Inactive Status
         run: |
           # Define the lookback period in days
-          LOOKBACK_DAYS=30
+          LOOKBACK_DAYS=90
           ORG="${{ github.repository_owner }}"
           MEMBERS_FILE="org-membership/members.json"
 
