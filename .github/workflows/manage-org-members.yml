@@ -78,8 +78,8 @@ jobs:
           # Build list of usernames to process (skip nonremovable & inactive)
           mapfile -t to_process < <(
             jq -r '.members[]
-                   | select(.status!="nonremovable" and .status!="inactive")
-                   | .username' "$MEMBERS_FILE"
+              | select(.status!="nonremovable" and .status!="inactive")
+              | .username' "$MEMBERS_FILE"
           )
           echo "Users to process: ${to_process[*]}"
 
@@ -144,8 +144,8 @@ jobs:
           # Identify inactive users
           mapfile -t inactive_users < <(
             jq -r '.members[]
-                   | select(.status=="inactive")
-                   | .username' "$MEMBERS_FILE"
+              | select(.status=="inactive")
+              | .username' "$MEMBERS_FILE"
           )
           echo "Inactive members to consider for removal: ${inactive_users[*]}"
 
