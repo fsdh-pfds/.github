@@ -1,16 +1,15 @@
-name: Manage Inactive Members
-
+name: Update Member Status
 on:
   schedule:
-    - cron: "0 1 * * *" # Runs daily at 1:00 UTC
+    - cron: '0 1 * * *'    # daily at 01:00 UTC
   workflow_dispatch:
 
-permissions: read-all
+permissions:
+  contents: write
 
 jobs:
-  check-activity:
+  update-status:
     runs-on: ubuntu-latest
-
     steps:
       - name: Create App token
         id: create_token
@@ -18,92 +17,65 @@ jobs:
         with:
           app-id: ${{ vars.FSDH_ORG_EVENT_WATCHER_APP_ID }}
           private-key: ${{ secrets.FSDH_ORG_EVENT_WATCHER_APP_KEY }}
-          owner: ${{ github.repository_owner }}
+          owner:   ${{ github.repository_owner }}
 
-      - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           token: ${{ steps.create_token.outputs.token }}
-          ref: ${{ github.ref_name }}
 
-      - name: Set up GitHub CLI
+      - name: Install sponge
         run: |
-          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
+          sudo apt-get update
+          sudo apt-get install -y moreutils
 
-      - name: Check Members Activity & Update Inactive Status
+      - name: Check & update member statuses
         run: |
-          # Define the lookback period in days
           LOOKBACK_DAYS=30
           ORG="${{ github.repository_owner }}"
           MEMBERS_FILE="org-membership/members.json"
 
-          SINCE=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d)
-          echo "Filtering for events on or after: $SINCE"
+          # Calculate cutoff date
+          CUTOFF=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d)
+          echo "Checking activity since $CUTOFF"
 
-          if [ ! -f "$MEMBERS_FILE" ]; then
-            echo "Error: $MEMBERS_FILE not found."
-            exit 1
-          fi
+          # Build list of usernames to process (skip nonremovable)
+          mapfile -t to_process < <(
+            jq -r '.members[] | select(.status!="nonremovable") | .username' "$MEMBERS_FILE"
+          )
 
-          # Initialize an array for usernames with no recent activity
-          inactive_users=()
+          # Iterate and apply status updates
+          for username in "${to_process[@]}"; do
+            current_status=$(jq -r --arg u "$username" '.members[] | select(.username==$u) | .status' "$MEMBERS_FILE")
+            echo "Evaluating $username (current status: $current_status)"
 
-          # Loop through each member in members.json
-          while IFS= read -r member; do
-            username=$(echo "$member" | jq -r '.username')
-            removable=$(echo "$member" | jq -r '.removable')
-            
-            # Skip scanning if "removable" is set to "no"
-            if [[ "$removable" == "no" ]]; then
-              echo "Skipping activity scan for $username because removable is set to no."
-              continue
-            fi
-
-            echo "Checking activity for $username"
-            
-            # Fetch events for the user; filter for events on or after SINCE and for the organization specified by $ORG.
             latest_event=$(gh api /users/"$username"/events?per_page=100 --paginate | \
-              jq --arg org "$ORG" '[.[] | select(.created_at >= env.SINCE and (.org.login == $org)) | {login: .actor.login, repo: .repo.name, org: (.org.login // "n/a"), event: .type, created_at: .created_at}] | sort_by(.created_at) | reverse | .[0]' || echo "")
-            
-            if [ -z "$latest_event" ] || [ "$latest_event" = "null" ]; then
-              echo "User $username is inactive."
-              inactive_users+=("$username")
+              jq --arg org "$ORG" '[.[] | select(.created_at >= env.CUTOFF and (.org.login == $org)) | {login: .actor.login, repo: .repo.name, org: (.org.login // "n/a"), event: .type, created_at: .created_at}] | sort_by(.created_at) | reverse | .[0]' || echo "")
+              
+            if [[ -n "$latest_event" && "$latest_event" != "null" ]]; then
+              if [[ "$current_status" == "invited" ]]; then
+                jq --arg u "$username" '(.members[] | select(.username==$u)).status = "active"' \
+                  "$MEMBERS_FILE" | sponge "$MEMBERS_FILE"
+                echo "Status changed from invited to active for $username"
+              fi
             else
-              echo "User $username is active."
+              if [[ "$current_status" == "active" ]]; then
+                jq --arg u "$username" '(.members[] | select(.username==$u)).status = "inactive"' \
+                  "$MEMBERS_FILE" | sponge "$MEMBERS_FILE"
+                echo "Status changed from active to inactive for $username"
+              fi
             fi
-          done < <(jq -c '.members[]' "$MEMBERS_FILE")
+          done
 
-          # Convert inactive_users array to a JSON array string
-          inactive_json=$(printf '%s\n' "${inactive_users[@]}" | jq -R . | jq -s .)
-          echo "Inactive users: $inactive_json"
-
-          # Update members.json: For each member, if the username is in the inactive array then set status to "inactive"; otherwise "active".
-          updated_json=$(jq --argjson inactive "$inactive_json" '
-            .members |= map(
-              if (.username as $uname | $inactive | index($uname)) then
-                .status = "inactive"
-              else
-                .status = "active"
-              end
-            )
-          ' "$MEMBERS_FILE")
-
-          # Overwrite the members.json file with the updated JSON content
-          echo "$updated_json" > "$MEMBERS_FILE"
-          echo "Updated $MEMBERS_FILE with new inactive statuses."
-
-          # Stage the updated file for commit
-          git add "$MEMBERS_FILE"
-
-      - name: Commit and Push Changes
-        env:
-          GITHUB_TOKEN: ${{ steps.create_token.outputs.token }}
+      - name: Commit & push updated JSON
+        if: false
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git config --global user.name "FSDH Org Event Watcher App"
-            git config --global user.email "<${{ vars.FSDH_ORG_EVENT_WATCHER_APP_ID }}+FSDH Org Event Watcher App[bot]@users.noreply.github.com>"
-            git commit -m "Update members.json inactive statuses"
-            git push
+          git config --global user.name  "FSDH Org Event Watcher App"
+          git config --global user.email "${{ vars.FSDH_ORG_EVENT_WATCHER_APP_ID }}[bot]@users.noreply.github.com"
+          git add org-membership/members.json
+          if git diff --cached --quiet; then
+            echo "No status changes to commit."
           else
-            echo "No changes to commit."
+            git commit -m "Automated: update member statuses"
+            git push
           fi

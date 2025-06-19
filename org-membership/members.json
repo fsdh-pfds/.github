@@ -4,78 +4,67 @@
       "username": "fsdh-breakglass-01",
       "email": "datasolutions-solutiondedonnees@ssc-spc.gc.ca",
       "role": "admin",
-      "status": "active",
-      "removable": "no"
+      "status": "nonremoveable"
     },
     {
       "username": "fsdh-breakglass-02",
       "email": "datasolutions-solutiondedonnees@ssc-spc.gc.ca",
       "role": "admin",
-      "status": "active",
-      "removable": "no"
+      "status": "nonremoveable"
     },
     {
       "username": "KingBain",
       "email": "john.bain@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "active",
-      "removable": "yes"
+      "status": "active"
     },
     {
       "username": "ErikApption",
       "email": "erik.putrycz@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "inactive",
-      "removable": "yes"
+      "status": "inactive"
     },
     {
       "username": "skaza999",
       "email": "shiraz.kazarian@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "inactive",
-      "removable": "yes"
+      "status": "inactive"
     },
     {
       "username": "simon-wang-gc",
       "email": "simon.wang@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "active",
-      "removable": "yes"
+      "status": "invited"
     },
     {
       "username": "deb-h576",
       "email": "debra.hamilton@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "inactive",
-      "removable": "yes"
+      "status": "inactive"
     },
     {
       "username": "joeHachache",
       "email": "joe.hachache@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "inactive",
-      "removable": "yes"
+      "status": "inactive"
     },
     {
       "username": "shudsky",
       "email": "Siovan.Gecelovsky@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "inactive",
-      "removable": "yes"
+      "status": "inactive"
     },
     {
       "username": "vb-ssc",
       "email": "vladimir.bukharov@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "inactive",
-      "removable": "yes"
+      "status": "inactive"
     },
     {
       "username": "Sean-Stilwell",
       "email": "sean.stilwell@ssc-spc.gc.ca",
       "role": "direct_member",
-      "status": "inactive",
-      "removable": "yes"
+      "status": "inactive"
     }
   ]
 }
