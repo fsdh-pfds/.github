@@ -1,7 +1,7 @@
 name: Update Member Status
 on:
   schedule:
-    - cron: '0 1 * * *'    # daily at 01:00 UTC
+    - cron: "0 1 * * *" # daily at 01:00 UTC
   workflow_dispatch:
 
 permissions:
@@ -24,7 +24,7 @@ jobs:
         with:
           app-id: ${{ vars.FSDH_ORG_EVENT_WATCHER_APP_ID }}
           private-key: ${{ secrets.FSDH_ORG_EVENT_WATCHER_APP_KEY }}
-          owner:   ${{ github.repository_owner }}
+          owner: ${{ github.repository_owner }}
 
       - name: Set up GitHub CLI
         run: |
@@ -42,7 +42,8 @@ jobs:
           MEMBERS_FILE="org-membership/members.json"
 
           # Calculate cutoff date
-          export CUTOFF=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d)
+          CUTOFF=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d)
+          export CUTOFF
           echo "Checking activity since $CUTOFF"
 
           # Build list of usernames to process (skip nonremovable)
