@@ -72,7 +72,6 @@ jobs:
           done
 
       - name: Commit & push updated JSON
-        if: false
         run: |
           git config --global user.name  "FSDH Org Event Watcher App"
           git config --global user.email "${{ vars.FSDH_ORG_EVENT_WATCHER_APP_ID }}[bot]@users.noreply.github.com"
