@@ -40,7 +40,7 @@ jobs:
           MEMBERS_FILE="org-membership/members.json"
 
           # Calculate cutoff date
-          CUTOFF=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d)
+          export CUTOFF=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d)
           echo "Checking activity since $CUTOFF"
 
           # Build list of usernames to process (skip nonremovable)
