@@ -4,13 +4,13 @@
       "username": "fsdh-breakglass-01",
       "email": "datasolutions-solutiondedonnees@ssc-spc.gc.ca",
       "role": "admin",
-      "status": "nonremoveable"
+      "status": "nonremovable"
     },
     {
       "username": "fsdh-breakglass-02",
       "email": "datasolutions-solutiondedonnees@ssc-spc.gc.ca",
       "role": "admin",
-      "status": "nonremoveable"
+      "status": "nonremovable"
     },
     {
       "username": "KingBain",
