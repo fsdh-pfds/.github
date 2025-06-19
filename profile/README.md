@@ -20,6 +20,13 @@
 
 ![Last Commit](https://img.shields.io/github/last-commit/fsdh-pfds/.github) ![Pull Requests](https://img.shields.io/github/issues-pr/fsdh-pfds/.github) ![Closed Pull Requests](https://img.shields.io/github/issues-pr-closed/fsdh-pfds/.github) [![Secret Scan](https://github.com/fsdh-pfds/.github/actions/workflows/secret-scanning.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/secret-scanning.yml) [![CodeQL](https://github.com/fsdh-pfds/.github/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/github-code-scanning/codeql)
 
+### ![Datahub-DNS](https://github.com/fsdh-pfds/datahub-dns)
+
+![GitHub stars](https://img.shields.io/github/stars/fsdh-pfds/datahub-dns?style=social)
+![GitHub forks](https://img.shields.io/github/forks/fsdh-pfds/datahub-dns?style=social)
+
+![Last Commit](https://img.shields.io/github/last-commit/fsdh-pfds/datahub-dns) ![Pull Requests](https://img.shields.io/github/issues-pr/fsdh-pfds/datahub-dns) ![Closed Pull Requests](https://img.shields.io/github/issues-pr-closed/fsdh-pfds/datahub-dns) [![Secret Scan](https://github.com/fsdh-pfds/datahub-dns/actions/workflows/secret-scanning.yml/badge.svg)](https://github.com/fsdh-pfds/datahub-dns/actions/workflows/secret-scanning.yml) [![CodeQL](https://github.com/fsdh-pfds/datahub-dns/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/fsdh-pfds/datahub-dns/actions/workflows/github-code-scanning/codeql)
+
 ### ![Status-Statut](<[https://github.com/fsdh-pfds/status-statut](https://github.com/fsdh-pfds/status-statut)>)
 
 ![GitHub stars](https://img.shields.io/github/stars/fsdh-pfds/status-statut?style=social)
