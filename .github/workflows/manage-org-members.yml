@@ -64,20 +64,19 @@ jobs:
             fi
           done
 
-      - name: Set membership
+      - name: Set organization membership
         run: |
           ORG="${{ github.repository_owner }}"
           TOKEN="${{ steps.create_token.outputs.token }}"
           ALLOWED_DOMAINS=("ssc-spc.gc.ca" "ssc.gc.ca")
           MEMBERS_FILE="org-membership/members.json"
 
+          # Build list of usernames to process (skip nonremovable & inactive)
           mapfile -t to_process < <(
             jq -r '.members[]
                    | select(.status!="nonremovable" and .status!="inactive")
                    | .username' "$MEMBERS_FILE"
           )
-
-          # Echo out the list for debugging
           echo "Users to process: ${to_process[*]}"
 
           for username in "${to_process[@]}"; do
@@ -89,16 +88,17 @@ jobs:
                       | .role' "$MEMBERS_FILE")
 
             # Extract domain from email
-            email_domain_regex="${email##*@}"
+            email_domain="${email##*@}"
 
             # Skip if domain not allowed
-            if ! printf '%s\n' "${ALLOWED_DOMAINS[@]}" | grep -Fxq "$email_domain_regex"; then
+            if ! printf '%s\n' "${ALLOWED_DOMAINS[@]}" | grep -Fxq "$email_domain"; then
               echo "Skipping $username: email domain not allowed"
               continue
             fi
 
             echo "Processing $username with desired role: $desired_role"
 
+            # Check membership status
             resp=$(curl -sL -w "\n%{http_code}" \
               -H "Authorization: Bearer $TOKEN" \
               -H "Accept: application/vnd.github+json" \
@@ -108,24 +108,21 @@ jobs:
 
             if [[ "$resp_code" == "404" ]]; then
               echo "Inviting $username"
-              curl -sL -X POST \
-                -H "Authorization: Bearer $TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/orgs/$ORG/invitations" \
-                -d "{\"email\": \"$email\", \"role\": \"$desired_role\"}"
+              gh api \
+                --method POST \
+                --raw-field email="${email}" \
+                --raw-field role="${desired_role}" \
+                /orgs/${ORG}/invitations
 
             elif [[ "$resp_code" == "200" ]]; then
               mapped_role=$([[ "$desired_role" == "direct_member" ]] && echo "member" || echo "$desired_role")
-              
               current_role=$(jq -r '.role' <<<"$resp_body")
-              
               if [[ "$current_role" != "$mapped_role" ]]; then
                 echo "Updating $username: $current_role -> $mapped_role"
-                curl -sL -X PUT \
-                  -H "Authorization: Bearer $TOKEN" \
-                  -H "Accept: application/vnd.github+json" \
-                  "https://api.github.com/orgs/$ORG/memberships/$username" \
-                  -d "{\"role\": \"$mapped_role\"}"
+                gh api \
+                  --method PUT \
+                  --raw-field role="${mapped_role}" \
+                  /orgs/${ORG}/memberships/${username}
               else
                 echo "$username already has role $current_role"
               fi
