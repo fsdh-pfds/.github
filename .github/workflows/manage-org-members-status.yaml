@@ -1,0 +1,88 @@
+name: Update Member Status
+on:
+  schedule:
+    - cron: "0 1 * * *" # daily at 01:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check and Install sponge
+        run: |
+          if ! command -v sponge >/dev/null; then
+            sudo apt-get update
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends moreutils
+          fi
+
+      - name: Create App token
+        id: create_token
+        uses: fsdh-pfds/.github/.github/actions/create-app-token@main
+        with:
+          app-id: ${{ vars.FSDH_ORG_EVENT_WATCHER_APP_ID }}
+          private-key: ${{ secrets.FSDH_ORG_EVENT_WATCHER_APP_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Set up GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.create_token.outputs.token }}
+
+      - name: Check & update member statuses
+        run: |
+          LOOKBACK_DAYS=90
+          ORG="${{ github.repository_owner }}"
+          MEMBERS_FILE="org-membership/members.json"
+
+          # Calculate cutoff date
+          CUTOFF=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d)
+          export CUTOFF
+          echo "Checking activity since $CUTOFF"
+
+          # Build list of usernames to process (skip nonremovable)
+          mapfile -t to_process < <(
+            jq -r '.members[] | select(.status!="nonremovable") | .username' "$MEMBERS_FILE"
+          )
+
+          # Iterate and apply status updates
+          for username in "${to_process[@]}"; do
+            current_status=$(jq -r --arg u "$username" '.members[] | select(.username==$u) | .status' "$MEMBERS_FILE")
+            echo "Evaluating $username (current status: $current_status)"
+
+            latest_event=$(gh api /users/"$username"/events?per_page=100 --paginate | \
+              jq --arg org "$ORG" '[.[] | select(.created_at >= env.CUTOFF and (.org.login == $org)) | {login: .actor.login, repo: .repo.name, org: (.org.login // "n/a"), event: .type, created_at: .created_at}] | sort_by(.created_at) | reverse | .[0]' || echo "")
+            
+
+            if [[ -n "$latest_event" && "$latest_event" != "null" ]]; then
+              if [[ "$current_status" == "invited" ]]; then
+                jq --arg u "$username" '(.members[] | select(.username==$u)).status = "active"' \
+                  "$MEMBERS_FILE" | sponge "$MEMBERS_FILE"
+                echo "Status changed from invited to active for $username"
+              fi
+            else
+              if [[ "$current_status" == "active" ]]; then
+                jq --arg u "$username" '(.members[] | select(.username==$u)).status = "inactive"' \
+                  "$MEMBERS_FILE" | sponge "$MEMBERS_FILE"
+                echo "Status changed from active to inactive for $username"
+              fi
+            fi
+          done
+
+      - name: Commit & push updated JSON
+        run: |
+          git config --global user.name  "FSDH Org Event Watcher App"
+          git config --global user.email "${{ vars.FSDH_ORG_EVENT_WATCHER_APP_ID }}[bot]@users.noreply.github.com"
+          git add org-membership/members.json
+          if git diff --cached --quiet; then
+            echo "No status changes to commit."
+          else
+            git commit -m "Automated: update member statuses"
+            git push
+          fi

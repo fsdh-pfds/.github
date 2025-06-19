@@ -24,6 +24,10 @@ jobs:
           app-id: ${{ vars.FSDH_TEAM_ADMIN_APP_ID }}
           private-key: ${{ secrets.FSDH_TEAM_ADMIN_APP_KEY }}
 
+      - name: Set up GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
+
       - name: Checkout Repository
         uses: actions/checkout@85e6279cec87321a52edac9c87bce653a07cf6c2
 
@@ -64,132 +68,91 @@ jobs:
             fi
           done
 
-      - name: Set membership
+      - name: Set organization membership
         run: |
           ORG="${{ github.repository_owner }}"
           TOKEN="${{ steps.create_token.outputs.token }}"
+          ALLOWED_DOMAINS=("ssc-spc.gc.ca" "ssc.gc.ca")
+          MEMBERS_FILE="org-membership/members.json"
 
-          # Define allowed email domains
-          allowed_domains=("ssc-spc.gc.ca" "ssc.gc.ca")
+          # Build list of usernames to process (skip nonremovable & inactive)
+          mapfile -t to_process < <(
+            jq -r '.members[]
+              | select(.status!="nonremovable" and .status!="inactive")
+              | .username' "$MEMBERS_FILE"
+          )
+          echo "Users to process: ${to_process[*]}"
 
-          # Path to members JSON file
-          ORG_MEMBERSHIP_FILE="org-membership/members.json"
-          if [[ ! -f "$ORG_MEMBERSHIP_FILE" ]]; then
-            echo "Error: $ORG_MEMBERSHIP_FILE not found."
-            exit 1
-          fi
+          for username in "${to_process[@]}"; do
+            email=$(jq -r --arg u "$username" '.members[]
+                      | select(.username==$u)
+                      | .email' "$MEMBERS_FILE")
+            desired_role=$(jq -r --arg u "$username" '.members[]
+                      | select(.username==$u)
+                      | .role' "$MEMBERS_FILE")
 
-          # Process each member from members.json
-          # Only process those with status "active"
-          jq -c '.members[]' "$ORG_MEMBERSHIP_FILE" | while read -r member; do
-            username=$(echo "$member" | jq -r '.username')
-            email=$(echo "$member" | jq -r '.email')
-            desired_role=$(echo "$member" | jq -r '.role')
-            status=$(echo "$member" | jq -r '.status')
-            removable=$(echo "$member" | jq -r '.removable')
-            
-            # Skip processing if status is inactive
-            if [[ "$status" != "active" ]]; then
-              echo "Skipping user $username because status is inactive."
+            # Extract domain from email
+            email_domain="${email##*@}"
+
+            # Skip if domain not allowed
+            if ! printf '%s\n' "${ALLOWED_DOMAINS[@]}" | grep -Fxq "$email_domain"; then
+              echo "Skipping $username: email domain not allowed"
               continue
             fi
-            
-            # Validate email domain
-            valid_email=false
-            for domain in "${allowed_domains[@]}"; do
-              if [[ "$email" == *"@$domain" ]]; then
-                valid_email=true
-                break
-              fi
-            done
-            if [[ "$valid_email" != true ]]; then
-              echo "Skipping user $username with email $email – domain not allowed."
-              continue
-            fi
-            
-            # Use the JSON username as the login
-            login="$username"
-            echo "Processing member: $login with email $email, desired role $desired_role, status $status, removable $removable"
-            
-            # Check membership status in the organization
-            membership_response=$(curl -sL -w "\n%{http_code}" \
+
+            echo "Processing $username with desired role: $desired_role"
+
+            # Check membership status
+            resp=$(curl -sL -w "\n%{http_code}" \
               -H "Authorization: Bearer $TOKEN" \
               -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/orgs/$ORG/memberships/$login")
-            http_code=$(echo "$membership_response" | tail -n1)
-            membership=$(echo "$membership_response" | sed '$d')
-            
-            if [[ "$http_code" == "404" ]]; then
-              echo "User $login is not a member. Inviting..."
-              invite_response=$(curl -sL -X POST \
-                -H "Authorization: Bearer $TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/orgs/$ORG/invitations" \
-                -d "{\"email\": \"$email\", \"role\": \"$desired_role\"}")
-              echo "Invite response for $login: $invite_response"
-            elif [[ "$http_code" == "200" ]]; then
-              # Map "direct_member" from JSON to "member" for API comparison.
-              if [[ "$desired_role" == "direct_member" ]]; then
-                mapped_role="member"
-              else
-                mapped_role="$desired_role"
-              fi
-              current_role=$(echo "$membership" | jq -r '.role')
+              "https://api.github.com/orgs/$ORG/memberships/$username")
+            resp_code=$(tail -n1 <<<"$resp")
+            resp_body=$(sed '$d' <<<"$resp")
+
+            if [[ "$resp_code" == "404" ]]; then
+              echo "Inviting $username"
+              gh api \
+                --method POST \
+                --raw-field email="${email}" \
+                --raw-field role="${desired_role}" \
+                "/orgs/${ORG}/invitations"
+
+            elif [[ "$resp_code" == "200" ]]; then
+              mapped_role=$([[ "$desired_role" == "direct_member" ]] && echo "member" || echo "$desired_role")
+              current_role=$(jq -r '.role' <<<"$resp_body")
               if [[ "$current_role" != "$mapped_role" ]]; then
-                echo "User $login is already a member but has role $current_role. Updating role to $mapped_role..."
-                update_response=$(curl -sL -X PUT \
-                  -H "Authorization: Bearer $TOKEN" \
-                  -H "Accept: application/vnd.github+json" \
-                  "https://api.github.com/orgs/$ORG/memberships/$login" \
-                  -d "{\"role\": \"$mapped_role\"}")
-                echo "Role update response for $login: $update_response"
+                echo "Updating $username: $current_role -> $mapped_role"
+                gh api \
+                  --method PUT \
+                  --raw-field role="${mapped_role}" \
+                  "/orgs/${ORG}/memberships/${username}"
               else
-                echo "User $login is already a member with the desired role: $mapped_role."
+                echo "$username already has role $current_role"
               fi
             else
-              echo "Unexpected status $http_code for membership check of user $login: $membership"
+              echo "Unexpected HTTP $resp_code for $username"
             fi
           done
 
-          jq -c '.members[]' "$ORG_MEMBERSHIP_FILE" | while read -r member; do
-            username=$(echo "$member" | jq -r '.username')
-            status=$(echo "$member" | jq -r '.status')
-            removable=$(echo "$member" | jq -r '.removable')
-            
-            # Include user if they are active OR they are non-removable
-            if [[ "$status" == "active" || "$removable" == "no" ]]; then
-              echo "$username"
-            fi
-          done > /tmp/allowed_users.txt
+      - name: Remove inactive members
+        run: |
+          ORG="${{ github.repository_owner }}"
+          MEMBERS_FILE="org-membership/members.json"
 
-          # Read allowed usernames into an array
-          readarray -t allowed_users < /tmp/allowed_users.txt
-          echo "Allowed users for retention: ${allowed_users[*]}"
+          # Identify inactive users
+          mapfile -t inactive_users < <(
+            jq -r '.members[]
+              | select(.status=="inactive")
+              | .username' "$MEMBERS_FILE"
+          )
+          echo "Inactive members to consider for removal: ${inactive_users[*]}"
 
-          # Fetch current organization members from GitHub.
-          echo "Fetching current organization members..."
-          org_members=$(curl -sL -H "Authorization: Bearer $TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/orgs/$ORG/members?per_page=100")
+          for username in "${inactive_users[@]}"; do
+            # Check if the user is actually a member before attempting removal
+            if gh api --method GET "/orgs/${ORG}/memberships/${username}" >/dev/null 2>&1; then
+              echo "Removing $username from organization"
+              gh api --method DELETE "/orgs/${ORG}/members/${username}"
 
-          # Load organization member usernames into an array.
-          readarray -t org_member_usernames < <(echo "$org_members" | jq -r '.[] | .login')
-
-          # For each org member, if they are not in the allowed list, remove them.
-          for org_member in "${org_member_usernames[@]}"; do
-            found=false
-            for allowed_member in "${allowed_users[@]}"; do
-              if [[ "$org_member" == "$allowed_member" ]]; then
-                found=true
-                break
-              fi
-            done
-            if [[ "$found" == false ]]; then
-              echo "Removing member $org_member because they are either inactive or not listed in active members."
-              remove_response=$(curl -sL -X DELETE \
-                -H "Authorization: Bearer $TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/orgs/$ORG/members/$org_member")
-              echo "Removal response for $org_member: $remove_response"
             fi
           done
