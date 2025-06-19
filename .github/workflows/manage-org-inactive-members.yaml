@@ -11,6 +11,13 @@ jobs:
   update-status:
     runs-on: ubuntu-latest
     steps:
+      - name: Check and Install sponge
+        run: |
+          if ! command -v sponge >/dev/null; then
+            sudo apt-get update
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends moreutils
+          fi
+
       - name: Create App token
         id: create_token
         uses: fsdh-pfds/.github/.github/actions/create-app-token@main
@@ -19,21 +26,14 @@ jobs:
           private-key: ${{ secrets.FSDH_ORG_EVENT_WATCHER_APP_KEY }}
           owner:   ${{ github.repository_owner }}
 
+      - name: Set up GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ steps.create_token.outputs.token }}
-
-      - name: Check and Install sponge
-        run: |
-          if ! command -v sponge >/dev/null; then
-            sudo apt-get update
-            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends moreutils
-          fi
-
-      - name: Set up GitHub CLI
-        run: |
-          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
 
       - name: Check & update member statuses
         run: |
