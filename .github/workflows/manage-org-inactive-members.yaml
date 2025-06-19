@@ -57,7 +57,8 @@ jobs:
 
             latest_event=$(gh api /users/"$username"/events?per_page=100 --paginate | \
               jq --arg org "$ORG" '[.[] | select(.created_at >= env.CUTOFF and (.org.login == $org)) | {login: .actor.login, repo: .repo.name, org: (.org.login // "n/a"), event: .type, created_at: .created_at}] | sort_by(.created_at) | reverse | .[0]' || echo "")
-              
+            
+
             if [[ -n "$latest_event" && "$latest_event" != "null" ]]; then
               if [[ "$current_status" == "invited" ]]; then
                 jq --arg u "$username" '(.members[] | select(.username==$u)).status = "active"' \
