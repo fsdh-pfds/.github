@@ -27,7 +27,7 @@ jobs:
       - name: Install sponge
         run: |
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends moreutils=0.66-1
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends moreutils
 
       - name: Set up GitHub CLI
         run: |
