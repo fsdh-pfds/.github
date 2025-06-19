@@ -24,6 +24,10 @@ jobs:
           app-id: ${{ vars.FSDH_TEAM_ADMIN_APP_ID }}
           private-key: ${{ secrets.FSDH_TEAM_ADMIN_APP_KEY }}
 
+      - name: Set up GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
+
       - name: Checkout Repository
         uses: actions/checkout@85e6279cec87321a52edac9c87bce653a07cf6c2
 
