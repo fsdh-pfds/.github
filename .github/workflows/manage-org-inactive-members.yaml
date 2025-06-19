@@ -24,10 +24,12 @@ jobs:
         with:
           token: ${{ steps.create_token.outputs.token }}
 
-      - name: Install sponge
+      - name: Check and Install sponge
         run: |
-          sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends moreutils
+          if ! command -v sponge >/dev/null; then
+            sudo apt-get update
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends moreutils
+          fi
 
       - name: Set up GitHub CLI
         run: |
@@ -54,11 +56,7 @@ jobs:
             echo "Evaluating $username (current status: $current_status)"
 
             latest_event=$(gh api /users/"$username"/events?per_page=100 --paginate | \
-              jq --arg org "$ORG" '[.[] | select(.created_at >= env.CUTOFF and (.org.login == $org)) | \
-              {login: .actor.login, repo: .repo.name, org: (.org.login // "n/a"), event: .type, created_at: .created_at}] | \
-              sort_by(.created_at) | \
-              reverse | \
-              .[0]' || echo "")
+              jq --arg org "$ORG" '[.[] | select(.created_at >= env.CUTOFF and (.org.login == $org)) | {login: .actor.login, repo: .repo.name, org: (.org.login // "n/a"), event: .type, created_at: .created_at}] | sort_by(.created_at) | reverse | .[0]' || echo "")
               
             if [[ -n "$latest_event" && "$latest_event" != "null" ]]; then
               if [[ "$current_status" == "invited" ]]; then
