@@ -116,7 +116,7 @@ jobs:
                 --method POST \
                 --raw-field email="${email}" \
                 --raw-field role="${desired_role}" \
-                /orgs/${ORG}/invitations
+                "/orgs/${ORG}/invitations"
 
             elif [[ "$resp_code" == "200" ]]; then
               mapped_role=$([[ "$desired_role" == "direct_member" ]] && echo "member" || echo "$desired_role")
@@ -126,7 +126,7 @@ jobs:
                 gh api \
                   --method PUT \
                   --raw-field role="${mapped_role}" \
-                  /orgs/${ORG}/memberships/${username}
+                  "/orgs/${ORG}/memberships/${username}"
               else
                 echo "$username already has role $current_role"
               fi
@@ -138,7 +138,6 @@ jobs:
       - name: Remove inactive members
         run: |
           ORG="${{ github.repository_owner }}"
-          TOKEN="${{ steps.create_token.outputs.token }}"
           MEMBERS_FILE="org-membership/members.json"
 
           # Identify inactive users
@@ -151,9 +150,9 @@ jobs:
 
           for username in "${inactive_users[@]}"; do
             # Check if the user is actually a member before attempting removal
-            if gh api --method GET /orgs/${ORG}/memberships/${username} >/dev/null 2>&1; then
+            if gh api --method GET "/orgs/${ORG}/memberships/${username}" >/dev/null 2>&1; then
               echo "Removing $username from organization"
-              gh api --method DELETE /orgs/${ORG}/members/${username}
+              gh api --method DELETE "/orgs/${ORG}/members/${username}"
 
             fi
           done
