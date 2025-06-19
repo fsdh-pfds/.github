@@ -28,6 +28,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y moreutils
+          
+      - name: Set up GitHub CLI
+        run: |
+          gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
 
       - name: Check & update member statuses
         run: |
