@@ -153,7 +153,7 @@ jobs:
             # Check if the user is actually a member before attempting removal
             if gh api --method GET /orgs/${ORG}/memberships/${username} >/dev/null 2>&1; then
               echo "Removing $username from organization"
-              #gh api --method DELETE /orgs/${ORG}/members/${username}
+              gh api --method DELETE /orgs/${ORG}/members/${username}
 
             fi
           done
