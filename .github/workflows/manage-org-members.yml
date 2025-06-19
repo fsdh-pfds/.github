@@ -77,6 +77,9 @@ jobs:
                    | .username' "$MEMBERS_FILE"
           )
 
+          # Echo out the list for debugging
+          echo "Users to process: ${to_process[*]}"
+
           for username in "${to_process[@]}"; do
             email=$(jq -r --arg u "$username" '.members[]
                       | select(.username==$u)
