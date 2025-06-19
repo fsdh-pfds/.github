@@ -134,3 +134,26 @@ jobs:
               echo "Unexpected HTTP $resp_code for $username"
             fi
           done
+
+      - name: Remove inactive members
+        run: |
+          ORG="${{ github.repository_owner }}"
+          TOKEN="${{ steps.create_token.outputs.token }}"
+          MEMBERS_FILE="org-membership/members.json"
+
+          # Identify inactive users
+          mapfile -t inactive_users < <(
+            jq -r '.members[]
+                   | select(.status=="inactive")
+                   | .username' "$MEMBERS_FILE"
+          )
+          echo "Inactive members to consider for removal: ${inactive_users[*]}"
+
+          for username in "${inactive_users[@]}"; do
+            # Check if the user is actually a member before attempting removal
+            if gh api --method GET /orgs/${ORG}/memberships/${username} >/dev/null 2>&1; then
+              echo "Removing $username from organization"
+              #gh api --method DELETE /orgs/${ORG}/members/${username}
+
+            fi
+          done
