@@ -1,0 +1,22 @@
+{
+  "name": "datahub-redirect-write",
+  "description": "Special redirection webtool to help with analytics",
+  "privacy": "closed",
+  "notification_setting": "notifications_enabled",
+  "members": [
+    {
+      "username": "Sean-Stilwell",
+      "role": "member"
+    },
+    {
+      "username": "deb-h576",
+      "role": "member"
+    }
+  ],
+  "repositories": [
+    {
+      "name": "datahub-redirect",
+      "permissions": "push"
+    }
+  ]
+}
