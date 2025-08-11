@@ -31,7 +31,7 @@ jobs:
           gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
           token: ${{ steps.create_token.outputs.token }}
 
