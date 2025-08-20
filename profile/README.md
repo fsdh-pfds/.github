@@ -3,6 +3,7 @@
 # Welcome
 
 ## Continual Compliance
+
 <!-- prettier-ignore-start -->
 | Control| Continual Validation|
 | --- | --- |
