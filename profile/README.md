@@ -9,7 +9,7 @@
 | AC-1 | [![Manage Org Members](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-members.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-members.yml) |                               
 | AC-2 | [![Manage Organization Teams](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-teams.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-teams.yml) [![JIT Org Admin](https://github.com/fsdh-pfds/.github/actions/workflows/org-admin-promotion.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/org-admin-promotion.yml) [![JIT Org Admin Cleanup](https://github.com/fsdh-pfds/.github/actions/workflows/org-admin-demotion.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/org-admin-demotion.yml) [![Manage Inactive Members](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-members-status.yaml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-members-status.yaml) |
 | AC-3|[![Branch Protection Rulesets](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-repo-rulesets.yml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-repo-rulesets.yml) [![Deploy Repository Settings](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-repo-settings.yaml/badge.svg)](https://github.com/fsdh-pfds/.github/actions/workflows/manage-org-repo-settings.yaml)|
- <!-- prettier-ignore-end --> 
+<!-- prettier-ignore-end -->
 
 ## Repository Health Dashboard
 
