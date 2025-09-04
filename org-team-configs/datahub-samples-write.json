@@ -1,0 +1,18 @@
+{
+  "name": "datahub-samples-write",
+  "description": "FSDH Code Contributors to the datahub-samples repo",
+  "privacy": "closed",
+  "notification_setting": "notifications_enabled",
+  "members": [
+    {
+      "username": "shudsky",
+      "role": "member"
+    }
+  ],
+  "repositories": [
+    {
+      "name": "datahub-samples",
+      "permissions": "push"
+    }
+  ]
+}
