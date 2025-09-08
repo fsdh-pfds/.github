@@ -1,6 +1,6 @@
 {
-  "name": "status-statut-admin",
-  "description": "status repo admin",
+  "name": "status-statut-write",
+  "description": "status repo users",
   "privacy": "closed",
   "notification_setting": "notifications_enabled",
   "members": [
@@ -16,7 +16,7 @@
   "repositories": [
     {
       "name": "status-statut",
-      "permissions": "admin"
+      "permissions": "push"
     }
   ]
 }
