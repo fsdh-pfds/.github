@@ -2,12 +2,12 @@ name: Deploy Repository Settings
 
 on:
   schedule:
-    # Run the workflow every hour
     - cron: "0 * * * *"
   push:
     branches:
       - main
     paths:
+      - ".github/workflows/manage-org-repo-settings.yaml"
       - "repo-settings/*.json"
   workflow_dispatch:
 
@@ -32,27 +32,56 @@ jobs:
         run: |
           gh auth login --with-token <<< "${{ steps.create_token.outputs.token }}"
 
-      - name: Enforcing repository settings
+      - name: Create or update repositories configuration
         run: |
+          set -euo pipefail
           error_count=0
+
+          org="${{ github.repository_owner }}"
+
           for file in repo-settings/*.json; do
             echo "Processing $file..."
-            full_name=$(jq -r '.full_name' "$file")
-            if [ -z "$full_name" ]; then
-              echo "No full_name found in $file; skipping."
+            repo_name=$(jq -r '.name' "$file")
+
+            if [ -z "$repo_name" ]; then
+              echo "Missing 'name' in $file; skipping."
               continue
             fi
-            echo "Updating repository: $full_name"
-            if gh api --method PATCH "repos/${full_name}" --header "Content-Type: application/json" --input "$file" --silent; then
-              echo "Repository settings applied successfully for ${full_name}"
+
+            # Check repository existence
+            if gh api "repos/${org}/${repo_name}" --silent >/dev/null 2>&1; then
+              repo_exists=true
             else
-              echo "Failed to update settings for ${full_name}"
-              error_count=$((error_count+1))
+              repo_exists=false
+            fi
+
+            # Perform create or update
+            if [ "$repo_exists" = true ]; then
+              echo "Repository $org/$repo_name exists — updating settings..."
+              if gh api --method PATCH "repos/${org}/${repo_name}" \
+                --header "Content-Type: application/json" \
+                --input "$file" --silent; then
+                echo "Updated repository settings for $org/$repo_name"
+              else
+                echo "Failed to update settings for $org/$repo_name"
+                error_count=$((error_count+1))
+              fi
+            else
+              echo "Repository $org/$repo_name does not exist — creating..."
+              if gh api --method POST "orgs/${org}/repos" \
+                --header "Content-Type: application/json" \
+                --input "$file" --silent; then
+                echo "Created repository $org/$repo_name"
+              else
+                echo "Failed to create repository $org/$repo_name"
+                error_count=$((error_count+1))
+              fi
             fi
           done
+
           if [ $error_count -gt 0 ]; then
-            echo "$error_count errors encountered while applying repository settings."
+            echo "$error_count errors encountered while processing repositories."
             exit 1
           else
-            echo "All repository settings applied successfully."
+            echo "All repositories processed successfully."
           fi
