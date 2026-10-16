@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Create App token
         id: create_token
-        uses: fsdh-pfds/.github/.github/actions/create-app-token@main
+        uses: fsdh-pfds/.github/.github/actions/create-app-token@6826e1af59f747c200d563b092a26b9eacd7986f # main
         with:
           app-id: ${{ vars.FSDH_ORG_ADMIN_PROMOTION_APP_ID }}
           private-key: ${{ secrets.FSDH_ORG_ADMIN_PROMOTION_APP_KEY }}
